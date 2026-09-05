@@ -1,4 +1,6 @@
 import convertLocalFilesToIStructure from '@/utils/convertLocalFilesToIStructure.ts';
+import { createAgentTokenClient } from '@/app/services/agentGitHubToken.ts';
+import { fetchPublicGitHubSource } from '@/app/services/publicSourceFetch.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import { CREATION_MODES } from '@/constants.ts';
@@ -18,6 +20,29 @@ import {
   buildProjectFiles,
   type IBuildProjectFilesResult,
 } from '@/utils/project-builder/buildProjectFiles.ts';
+import type { ILoadCoreFilesOptions } from '@/utils/project-builder/utils/loadCoreFiles.ts';
+import { CoreMergeError } from '@/utils/project-builder/utils/loadCoreFiles.ts';
+import {
+  findStructureYamlContent,
+  parseRecipeDirectives,
+} from '@/utils/project-builder/utils/recipeDirectives.ts';
+import { fetchPinnedRepoTarball } from '@/utils/fetchPinnedRepoTarball.ts';
+import {
+  fetchResolvedRemoteBase,
+  resolveTemplateBase,
+  TemplateBaseError,
+  type IResolvedTemplateBase,
+} from '@/utils/project-builder/utils/resolveTemplateBase.ts';
+import {
+  GitHubSnapshotError,
+  createGitHubSnapshotLookup,
+  resolveGitHubSnapshot,
+  type IGitHubSnapshotLookup,
+} from '@/utils/resolveGitHubSnapshot.ts';
+import {
+  AgentCreateRepoError,
+  createAgentTargetRepository,
+} from '@/app/services/agentCreateRepoService.ts';
 import {
   SCAFFOLDER_MESSAGE_CODES,
   type IScaffolderMessage,
@@ -28,7 +53,6 @@ import {
   type IAgentScaffoldRequest,
 } from '@/schemas/agentScaffold.ts';
 import { convertPublicRepoFilesToStructure } from '@/utils/convertPublicRepoFilesToIStructure.ts';
-import { fetchRepositoryFiles } from '@/utils/downloadPublicRepoFiles.ts';
 import {
   ensureScaffolderBranchName,
   isProtectedBranchName,
@@ -49,7 +73,7 @@ import {
 } from '@/app/services/githubDraftPullRequestService.ts';
 
 export class AgentScaffoldError extends Error {
-  readonly status: 400 | 403 | 500;
+  readonly status: 400 | 403 | 409 | 500;
   readonly code: string;
   readonly details?: unknown;
   readonly installationUrl?: string;
@@ -57,7 +81,7 @@ export class AgentScaffoldError extends Error {
   constructor(
     message: string,
     options: {
-      status: 400 | 403 | 500;
+      status: 400 | 403 | 409 | 500;
       code: string;
       details?: unknown;
       installationUrl?: string;
@@ -76,24 +100,39 @@ export interface IAgentScaffoldResult extends IDraftPullRequestResult {
   projectName: string;
   targetRepo: string;
   tables: string[];
+  repoCreated?: boolean;
+  resolvedSha?: string;
+  projectResolvedSha?: string;
 }
 
 export interface IRemoteScaffolderFilesRequest {
   owner: string;
   repo: string;
-  ref: string;
+  ref: string | null;
 }
 
 export interface IAgentScaffoldServiceDependencies {
+  auth0UserId?: string;
+  githubToken?: string;
+  createTokenClient?: typeof createAgentTokenClient;
   loadUserFiles?: () => IStructure;
   loadRemoteUserFiles?: (
     request: IRemoteScaffolderFilesRequest,
   ) => Promise<IStructure>;
+  loadTemplateFiles?: (templateRepo: string) => Promise<IStructure>;
+  githubSnapshotLookup?: IGitHubSnapshotLookup;
+  createRepo?: (params: {
+    owner: string;
+    repo: string;
+    auth0UserId?: string;
+  }) => Promise<{ created: boolean; repoUrl: string }>;
   buildProject?: (
     projectYamlPath: string,
     userFiles: IStructure,
     schemaInfo: ISchemaInfo[],
     formData: IFormStore,
+    userMetadata?: Record<string, unknown> | null,
+    coreOptions?: ILoadCoreFilesOptions,
   ) => Promise<IBuildProjectFilesResult>;
   publish?: (
     params: IPublishDraftPullRequestParams,
@@ -103,23 +142,33 @@ export interface IAgentScaffoldServiceDependencies {
 
 async function defaultLoadRemoteUserFiles(
   request: IRemoteScaffolderFilesRequest,
-): Promise<IStructure> {
-  const extractedFiles = await fetchRepositoryFiles({
-    user: request.owner,
-    repository: request.repo,
-    branch: request.ref,
-    filesToFetch: ['*'],
-    keepFolderStructure: true,
+  lookup: IGitHubSnapshotLookup | undefined,
+): Promise<{ files: IStructure; resolvedSha: string }> {
+  const snapshot = await resolveGitHubSnapshot(
+    {
+      owner: request.owner,
+      repo: request.repo,
+      ref: request.ref,
+    },
+    lookup ?? createGitHubSnapshotLookup(fetchPublicGitHubSource),
+  );
+  const extractedFiles = await fetchPinnedRepoTarball({
+    owner: request.owner,
+    repo: request.repo,
+    sha: snapshot.resolvedSha,
   });
-  return convertPublicRepoFilesToStructure(extractedFiles);
+  return {
+    files: convertPublicRepoFilesToStructure(extractedFiles),
+    resolvedSha: snapshot.resolvedSha,
+  };
 }
 
 async function resolveUserFiles(
   projectReference: IParsedProjectReference,
   dependencies: IAgentScaffoldServiceDependencies,
-): Promise<IStructure> {
+): Promise<{ files: IStructure; resolvedSha?: string }> {
   if (dependencies.loadUserFiles !== undefined) {
-    return dependencies.loadUserFiles();
+    return { files: dependencies.loadUserFiles() };
   }
 
   if (
@@ -127,15 +176,51 @@ async function resolveUserFiles(
     projectReference.owner !== null &&
     projectReference.repo !== null
   ) {
-    const loadRemote =
-      dependencies.loadRemoteUserFiles ?? defaultLoadRemoteUserFiles;
+    if (dependencies.loadRemoteUserFiles !== undefined) {
+      try {
+        return {
+          files: await dependencies.loadRemoteUserFiles({
+            owner: projectReference.owner,
+            repo: projectReference.repo,
+            ref: projectReference.ref,
+          }),
+        };
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch scaffolder files repository';
+        throw new AgentScaffoldError(message, {
+          status: 400,
+          code: 'FILES_REPO_FETCH_FAILED',
+          details: {
+            filesRepoUrl: projectReference.filesRepoUrl,
+            ref: projectReference.ref,
+          },
+        });
+      }
+    }
+
     try {
-      return await loadRemote({
-        owner: projectReference.owner,
-        repo: projectReference.repo,
-        ref: projectReference.ref ?? 'main',
-      });
+      return await defaultLoadRemoteUserFiles(
+        {
+          owner: projectReference.owner,
+          repo: projectReference.repo,
+          ref: projectReference.ref,
+        },
+        dependencies.githubSnapshotLookup,
+      );
     } catch (error: unknown) {
+      if (error instanceof GitHubSnapshotError) {
+        throw new AgentScaffoldError(error.message, {
+          status: 400,
+          code: 'FILES_REPO_FETCH_FAILED',
+          details: {
+            filesRepoUrl: projectReference.filesRepoUrl,
+            ref: projectReference.ref,
+          },
+        });
+      }
       const message =
         error instanceof Error
           ? error.message
@@ -151,7 +236,7 @@ async function resolveUserFiles(
     }
   }
 
-  return convertLocalFilesToIStructure('files');
+  return { files: convertLocalFilesToIStructure('files') };
 }
 
 function createAgentFormData(
@@ -208,15 +293,14 @@ function createAgentFormData(
   };
 }
 
-function findLeftoverPlaceholderMessage(
+function findBuildMessage(
   messages: IScaffolderMessage[] | undefined,
+  code: (typeof SCAFFOLDER_MESSAGE_CODES)[keyof typeof SCAFFOLDER_MESSAGE_CODES],
 ): IScaffolderMessage | undefined {
   if (messages === undefined) {
     return undefined;
   }
-  return messages.find(
-    (message) => message.code === SCAFFOLDER_MESSAGE_CODES.LeftoverPlaceholder,
-  );
+  return messages.find((message) => message.code === code);
 }
 
 function resolveSchemaInfo(schemaInfo: unknown): SchemaInfoArray {
@@ -275,6 +359,129 @@ function resolveTargetedPullNumber(
   return parsed.prNumber;
 }
 
+function throwTemplateBaseAsAgentError(error: unknown): never {
+  if (error instanceof TemplateBaseError) {
+    throw new AgentScaffoldError(error.message, {
+      status: 400,
+      code: error.code,
+    });
+  }
+  if (error instanceof AgentScaffoldError) {
+    throw error;
+  }
+  const message =
+    error instanceof Error ? error.message : 'Invalid template_repo';
+  throw new AgentScaffoldError(message, {
+    status: 400,
+    code: 'INVALID_TEMPLATE_REPO',
+  });
+}
+
+async function resolveAndFetchTemplateBase(
+  requestOverride: string | undefined,
+  recipeBase: string | null,
+  dependencies: IAgentScaffoldServiceDependencies,
+): Promise<{ layer?: IStructure; resolvedSha?: string }> {
+  const resolved = ((): IResolvedTemplateBase => {
+    try {
+      return resolveTemplateBase(requestOverride, recipeBase);
+    } catch (error: unknown) {
+      throwTemplateBaseAsAgentError(error);
+    }
+  })();
+
+  if (resolved.kind !== 'remote') {
+    return {};
+  }
+
+  try {
+    return await fetchResolvedRemoteBase(
+      resolved,
+      dependencies.loadTemplateFiles,
+      {
+        snapshotLookup:
+          dependencies.githubSnapshotLookup ??
+          (dependencies.loadTemplateFiles === undefined
+            ? createGitHubSnapshotLookup(fetchPublicGitHubSource)
+            : undefined),
+      },
+    );
+  } catch (error: unknown) {
+    if (error instanceof AgentScaffoldError) {
+      throw error;
+    }
+    if (error instanceof TemplateBaseError) {
+      throwTemplateBaseAsAgentError(error);
+    }
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Failed to fetch template tarball';
+    throw new AgentScaffoldError(message, {
+      status: 400,
+      code: 'TEMPLATE_FETCH_FAILED',
+      details: {
+        templateRepo: `${resolved.parsed.owner}/${resolved.parsed.repo}`,
+        ref: resolved.parsed.ref,
+      },
+    });
+  }
+}
+
+function createdRepoRecoveryDetails(targetRepo: IParsedTargetRepo): {
+  repoCreated: true;
+  repoUrl: string;
+  recovery: string;
+} {
+  return {
+    repoCreated: true,
+    repoUrl: `https://github.com/${targetRepo.owner}/${targetRepo.repo}`,
+    recovery:
+      'The destination repository was created. Retry publication without create_repo, or delete the empty repository before retrying with create_repo.',
+  };
+}
+
+async function createTargetRepoIfRequested(
+  request: IAgentScaffoldRequest,
+  targetRepo: IParsedTargetRepo,
+  dependencies: IAgentScaffoldServiceDependencies,
+): Promise<boolean> {
+  if (request.create_repo !== true) {
+    return false;
+  }
+
+  const createRepo =
+    dependencies.createRepo ??
+    ((params) =>
+      createAgentTargetRepository(
+        { owner: params.owner, repo: params.repo },
+        {
+          auth0UserId: params.auth0UserId,
+          githubToken: dependencies.githubToken,
+        },
+        { createTokenClient: dependencies.createTokenClient },
+      ));
+
+  try {
+    const created = await createRepo({
+      owner: targetRepo.owner,
+      repo: targetRepo.repo,
+      auth0UserId: dependencies.auth0UserId,
+    });
+    return created.created;
+  } catch (error: unknown) {
+    if (error instanceof AgentCreateRepoError) {
+      throw new AgentScaffoldError(error.message, {
+        status: error.status,
+        code: error.code,
+        details: error.details,
+        installationUrl: error.installationUrl,
+      });
+    }
+    throw error;
+  }
+}
+
 export async function scaffoldToPullRequest(
   request: IAgentScaffoldRequest,
   dependencies: IAgentScaffoldServiceDependencies = {},
@@ -282,9 +489,7 @@ export async function scaffoldToPullRequest(
   let projectReference: IParsedProjectReference;
   let targetRepo: IParsedTargetRepo;
   try {
-    projectReference = parseProjectReference(
-      resolveProjectIdentifier(request),
-    );
+    projectReference = parseProjectReference(resolveProjectIdentifier(request));
     targetRepo = parseTargetRepo(request.target_repo);
   } catch (error: unknown) {
     const message =
@@ -296,7 +501,11 @@ export async function scaffoldToPullRequest(
   }
 
   const schemaInfo = resolveSchemaInfo(request.schemaInfo);
-  const userFiles = await resolveUserFiles(projectReference, dependencies);
+  const userFilesResult = await resolveUserFiles(
+    projectReference,
+    dependencies,
+  );
+  const userFiles = userFilesResult.files;
   const projects = getAllProjects(userFiles);
   const project = projects.find(
     (item) => item.name === projectReference.projectName,
@@ -351,20 +560,69 @@ export async function scaffoldToPullRequest(
     }
   }
 
-  const buildProject = dependencies.buildProject ?? buildProjectFiles;
-  const buildResult = await buildProject(
+  const recipeContent = findStructureYamlContent(
     projectReference.projectYamlPath,
     userFiles,
-    schemaInfo,
-    createAgentFormData(project.name, projectReference.filesRepoUrl),
+  );
+  const recipe = parseRecipeDirectives(recipeContent ?? '');
+  const templateBase = await resolveAndFetchTemplateBase(
+    request.template_repo,
+    recipe.base,
+    dependencies,
   );
 
+  const buildProject = dependencies.buildProject ?? buildProjectFiles;
+  const coreOptions: ILoadCoreFilesOptions | undefined =
+    templateBase.layer === undefined && request.template_repo === undefined
+      ? undefined
+      : {
+          remoteBaseLayer: templateBase.layer,
+          templateRepoOverride: request.template_repo,
+          loadTemplateFiles: dependencies.loadTemplateFiles,
+        };
+  let buildResult: IBuildProjectFilesResult;
+  try {
+    buildResult = await buildProject(
+      projectReference.projectYamlPath,
+      userFiles,
+      schemaInfo,
+      createAgentFormData(project.name, projectReference.filesRepoUrl),
+      undefined,
+      coreOptions,
+    );
+  } catch (error: unknown) {
+    if (error instanceof CoreMergeError) {
+      throw new AgentScaffoldError(error.message, {
+        status: 400,
+        code: error.code,
+      });
+    }
+    if (error instanceof TemplateBaseError) {
+      throwTemplateBaseAsAgentError(error);
+    }
+    throw error;
+  }
+
   if (buildResult.hasErrors === true) {
-    const leftoverMessage = findLeftoverPlaceholderMessage(buildResult.messages);
+    const leftoverMessage = findBuildMessage(
+      buildResult.messages,
+      SCAFFOLDER_MESSAGE_CODES.LeftoverPlaceholder,
+    );
     if (leftoverMessage !== undefined) {
       throw new AgentScaffoldError(leftoverMessage.title, {
         status: 400,
         code: 'LEFTOVER_PLACEHOLDER',
+        details: buildResult.messages,
+      });
+    }
+    const conflictMessage = findBuildMessage(
+      buildResult.messages,
+      SCAFFOLDER_MESSAGE_CODES.TemplateApiConflict,
+    );
+    if (conflictMessage !== undefined) {
+      throw new AgentScaffoldError(conflictMessage.title, {
+        status: 400,
+        code: 'TEMPLATE_API_CONFLICT',
         details: buildResult.messages,
       });
     }
@@ -387,8 +645,22 @@ export async function scaffoldToPullRequest(
     );
   }
 
+  const repoCreated = await createTargetRepoIfRequested(
+    request,
+    targetRepo,
+    dependencies,
+  );
+
   const draft = request.draft !== false;
   const prTitle = request.prTitle ?? `Scaffold ${project.name} from schemaInfo`;
+  const provenanceLines = [
+    templateBase.resolvedSha === undefined
+      ? undefined
+      : `- Template snapshot: \`${templateBase.resolvedSha}\``,
+    userFilesResult.resolvedSha === undefined
+      ? undefined
+      : `- Project files snapshot: \`${userFilesResult.resolvedSha}\``,
+  ].filter((line): line is string => line !== undefined);
   const prBody =
     request.prBody ??
     [
@@ -396,11 +668,28 @@ export async function scaffoldToPullRequest(
       '',
       `- Project: \`${project.name}\``,
       `- Tables: ${schemaInfo.map((table) => table.tableName).join(', ')}`,
+      ...provenanceLines,
       '',
       'Review the generated files before merging. This branch was not written to the default branch.',
     ].join('\n');
 
-  const publish = dependencies.publish ?? publishDraftPullRequest;
+  const githubToken = dependencies.githubToken;
+  const publish =
+    dependencies.publish ??
+    ((params: IPublishDraftPullRequestParams) =>
+      publishDraftPullRequest(
+        params,
+        githubToken === undefined
+          ? {}
+          : {
+              getOctokit: () =>
+                Promise.resolve(
+                  (dependencies.createTokenClient ?? createAgentTokenClient)(
+                    githubToken,
+                  ),
+                ),
+            },
+      ));
 
   try {
     const published = await publish({
@@ -421,6 +710,9 @@ export async function scaffoldToPullRequest(
       projectName: project.name,
       targetRepo: `${targetRepo.owner}/${targetRepo.repo}`,
       tables: schemaInfo.map((table) => table.tableName),
+      repoCreated,
+      resolvedSha: templateBase.resolvedSha,
+      projectResolvedSha: userFilesResult.resolvedSha,
     };
   } catch (error: unknown) {
     if (error instanceof GitHubDraftPullRequestError) {
@@ -428,6 +720,30 @@ export async function scaffoldToPullRequest(
         status: error.status,
         code: error.code,
         installationUrl: error.installationUrl,
+        details: repoCreated
+          ? createdRepoRecoveryDetails(targetRepo)
+          : undefined,
+      });
+    }
+    if (githubToken !== undefined) {
+      throw new AgentScaffoldError(
+        'PAT publication failed. Check repository access, Contents and Pull requests write permissions (and Workflows write permission when generating workflow files).',
+        {
+          status: 403,
+          code: 'PAT_PUBLISH_FAILED',
+          details: repoCreated
+            ? createdRepoRecoveryDetails(targetRepo)
+            : undefined,
+        },
+      );
+    }
+    if (repoCreated) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to publish draft PR';
+      throw new AgentScaffoldError(message, {
+        status: 500,
+        code: 'PUBLISH_FAILED_AFTER_CREATE',
+        details: createdRepoRecoveryDetails(targetRepo),
       });
     }
     throw error;

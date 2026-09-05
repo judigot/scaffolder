@@ -1,8 +1,12 @@
-# Bun Turborepo golden: Nest.js API + path-aware Drizzle at apps/api.
-# Schema-driven FILE_LOOP CRUD lives in this project, not in Core.
-# /Core/better-auth is a repo-root Hono overlay (api/auth, api/db) — do not
-# compose it here; it would conflict with apps/api. Optional Fastify adapter:
-# compose /Core/nestjs-fastify after nestjs-api (not a second golden).
+# Bun Turborepo golden: Nest.js API + path-aware FILE_LOOP CRUD.
+# $BASE is the author default skeleton (bundled Core). Request template_repo
+# overrides it with a pinned tarball. Merge cannot delete; replace: strips
+# live Hono apps/api before Nest lands. Omit $BASE + template_repo → today's
+# /Core/template-monorepo first core.
+
+$BASE: /Core/template-monorepo
+replace:
+  - apps/api/**
 
 $USE_CORE:
   - /Core/template-monorepo

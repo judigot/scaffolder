@@ -29,7 +29,7 @@ export interface IVerifyAgentScaffoldAuthOptions {
   verifyAuth0?: IAuth0Verifier;
 }
 
-const AGENT_AUTH_SUBJECT = 'scaffolder-agent';
+export const AGENT_AUTH_SUBJECT = 'scaffolder-agent';
 
 function sha256(value: string): Buffer {
   return createHash('sha256').update(value).digest();

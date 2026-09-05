@@ -115,6 +115,37 @@ describe('AgentScaffoldRequestSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('accepts optional template_repo and create_repo', () => {
+    const result = AgentScaffoldRequestSchema.safeParse({
+      schemaInfo: honoReactCompactSchema,
+      project_url: knexProjectUrl,
+      target_repo: 'judigot/new-app',
+      template_repo: 'https://github.com/judigot/template-monorepo',
+      create_repo: true,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.create_repo).toBe(true);
+      expect(result.data.template_repo).toBe(
+        'https://github.com/judigot/template-monorepo',
+      );
+    }
+  });
+
+  it('defaults create_repo to omitted rather than true', () => {
+    const result = AgentScaffoldRequestSchema.safeParse({
+      schemaInfo: honoReactCompactSchema,
+      project_url: knexProjectUrl,
+      target_repo: 'judigot/bookingwars',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.create_repo).toBeUndefined();
+    }
+  });
+
   it('accepts optional prNumber and prUrl targeting fields', () => {
     const byNumber = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: honoReactCompactSchema,

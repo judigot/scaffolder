@@ -15,6 +15,8 @@ interface ICreateGitHubRepositoryRequest {
   auth0UserId?: string;
   /** Force a specific method: 'personal_token' | 'github_app' */
   method?: 'personal_token' | 'github_app';
+  /** Seed a default branch. Agent create_repo needs this for PRs. */
+  autoInit?: boolean;
 }
 
 /**
@@ -36,6 +38,7 @@ export const createGitHubRepositoryService = async (
     owner,
     auth0UserId,
     method,
+    autoInit = false,
   } = data;
 
   if (!repoName || repoName === '') {
@@ -54,6 +57,7 @@ export const createGitHubRepositoryService = async (
       isPrivate,
       owner,
       auth0UserId,
+      autoInit,
     );
   }
 
@@ -64,6 +68,7 @@ export const createGitHubRepositoryService = async (
       isPrivate,
       owner,
       auth0UserId,
+      autoInit,
     );
   }
 
@@ -86,6 +91,7 @@ export const createGitHubRepositoryService = async (
             isPrivate,
             owner,
             auth0UserId,
+            autoInit,
           );
         } catch (appError) {
           /* If GitHub App fails, try personal token as fallback */
@@ -98,6 +104,7 @@ export const createGitHubRepositoryService = async (
                 isPrivate,
                 owner,
                 auth0UserId,
+                autoInit,
               );
             }
           }
@@ -112,6 +119,7 @@ export const createGitHubRepositoryService = async (
       isPrivate,
       owner,
       auth0UserId,
+      autoInit,
     );
   }
 
@@ -122,6 +130,7 @@ export const createGitHubRepositoryService = async (
     isPrivate,
     owner,
     auth0UserId,
+    autoInit,
   );
 };
 
@@ -183,6 +192,7 @@ async function createWithPersonalToken(
   isPrivate: boolean,
   owner: string,
   auth0UserId?: string,
+  autoInit = false,
 ): Promise<{ success: boolean; message: string; repoUrl?: string }> {
   if (auth0UserId === undefined || auth0UserId === '') {
     throw new Error(
@@ -222,7 +232,7 @@ async function createWithPersonalToken(
         name: repoName,
         description: description || undefined,
         private: isPrivate,
-        auto_init: false,
+        auto_init: autoInit,
       });
       return {
         success: true,
@@ -237,7 +247,7 @@ async function createWithPersonalToken(
       name: repoName,
       description: description || undefined,
       private: isPrivate,
-      auto_init: false,
+      auto_init: autoInit,
     });
     return {
       success: true,
@@ -262,6 +272,7 @@ async function createWithGitHubApp(
   isPrivate: boolean,
   owner: string,
   auth0UserId?: string,
+  autoInit = false,
 ): Promise<{ success: boolean; message: string; repoUrl?: string }> {
   const appConfig = getGitHubAppConfig();
   if (appConfig === null) {
@@ -285,6 +296,7 @@ async function createWithGitHubApp(
           isPrivate,
           owner,
           auth0UserId,
+          autoInit,
         );
       }
     }
@@ -323,7 +335,7 @@ async function createWithGitHubApp(
       name: repoName,
       description: description || undefined,
       private: isPrivate,
-      auto_init: false,
+      auto_init: autoInit,
     });
 
     return {
@@ -352,7 +364,7 @@ async function createWithGitHubApp(
           name: repoName,
           description: description || undefined,
           private: isPrivate,
-          auto_init: false,
+          auto_init: autoInit,
         });
 
         return {

@@ -30,6 +30,10 @@ export const AgentScaffoldRequestSchema = z
       .string()
       .trim()
       .min(1, { message: 'target_repo is required' }),
+    // Pinned GitHub starter. Overrides structure.yaml $BASE / source.
+    template_repo: z.string().trim().min(1).optional(),
+    // Create target_repo when missing. Private + auto_init. Default false.
+    create_repo: z.boolean().optional(),
     branch: z.string().trim().min(1).optional(),
     prTitle: z.string().trim().min(1).optional(),
     prBody: z.string().trim().min(1).optional(),
