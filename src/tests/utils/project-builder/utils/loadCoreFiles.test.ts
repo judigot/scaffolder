@@ -267,4 +267,184 @@ describe('loadCoreFiles', () => {
 
     expect(result).toEqual([]);
   });
+
+  it('applies replace globs before Nest and strips leftover hono deps', () => {
+    const userFiles: IStructure = [
+      {
+        type: 'folder',
+        name: 'Core',
+        children: [
+          {
+            type: 'folder',
+            name: 'template-monorepo',
+            children: [
+              {
+                type: 'folder',
+                name: 'apps',
+                children: [
+                  {
+                    type: 'folder',
+                    name: 'api',
+                    children: [
+                      {
+                        type: 'file',
+                        name: 'package.json',
+                        content:
+                          '{"name":"hono-api","dependencies":{"hono":"^4.0.0"}}',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                type: 'file',
+                name: 'package.json',
+                content:
+                  '{"name":"root","dependencies":{"hono":"^4.0.0","turbo":"^2.0.0"}}',
+              },
+            ],
+          },
+          {
+            type: 'folder',
+            name: 'nestjs-api',
+            children: [
+              {
+                type: 'folder',
+                name: 'apps',
+                children: [
+                  {
+                    type: 'folder',
+                    name: 'api',
+                    children: [
+                      {
+                        type: 'file',
+                        name: 'package.json',
+                        content:
+                          '{"name":"@bigbang/api","dependencies":{"@nestjs/core":"^11.0.0"}}',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      {
+        type: 'folder',
+        name: 'Projects',
+        children: [
+          {
+            type: 'folder',
+            name: 'template-monorepo',
+            children: [
+              {
+                type: 'file',
+                name: 'structure.yaml',
+                content:
+                  '$BASE: /Core/template-monorepo\nreplace:\n  - apps/api/**\n$USE_CORE:\n  - /Core/template-monorepo\n  - /Core/nestjs-api\n',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const result = loadCoreFiles(
+      '/Projects/template-monorepo/structure.yaml',
+      userFiles,
+    );
+
+    const rootPackage = result.find((item) => item.name === 'package.json');
+    expect(rootPackage?.type).toBe('file');
+    if (rootPackage?.type === 'file') {
+      const parsed: unknown = JSON.parse(rootPackage.content);
+      expect(parsed).toEqual({
+        name: 'root',
+        dependencies: { turbo: '^2.0.0' },
+      });
+    }
+
+    const apps = result.find((item) => item.name === 'apps');
+    expect(apps?.type).toBe('folder');
+    if (apps?.type === 'folder') {
+      const api = apps.children.find((item) => item.name === 'api');
+      expect(api?.type).toBe('folder');
+      if (api?.type === 'folder') {
+        const apiPackage = api.children.find(
+          (item) => item.name === 'package.json',
+        );
+        expect(apiPackage?.type).toBe('file');
+        if (apiPackage?.type === 'file') {
+          expect(apiPackage.content).toContain('@nestjs/core');
+          expect(apiPackage.content).not.toContain('hono');
+        }
+      }
+    }
+  });
+
+  it('refuses a live Hono template plus Nest recipe without replace', () => {
+    const userFiles: IStructure = [
+      {
+        type: 'folder',
+        name: 'Core',
+        children: [
+          {
+            type: 'folder',
+            name: 'nestjs-api',
+            children: [
+              {
+                type: 'file',
+                name: 'main.ts',
+                content: 'nest',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        type: 'folder',
+        name: 'Projects',
+        children: [
+          {
+            type: 'folder',
+            name: 'template-monorepo',
+            children: [
+              {
+                type: 'file',
+                name: 'structure.yaml',
+                content: '$USE_CORE:\n  - /Core/nestjs-api\n',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const remoteHono: IStructure = [
+      {
+        type: 'folder',
+        name: 'apps',
+        children: [
+          {
+            type: 'folder',
+            name: 'api',
+            children: [
+              {
+                type: 'file',
+                name: 'package.json',
+                content: '{"dependencies":{"hono":"^4.0.0"}}',
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    expect(() =>
+      loadCoreFiles('/Projects/template-monorepo/structure.yaml', userFiles, {
+        remoteBaseLayer: remoteHono,
+      }),
+    ).toThrow(/replace: \[apps\/api\/\*\*\]/);
+  });
 });

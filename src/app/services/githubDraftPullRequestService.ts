@@ -96,7 +96,7 @@ export interface IGitHubGitClient {
     createTree: (params: {
       owner: string;
       repo: string;
-      base_tree: string;
+      base_tree?: string;
       tree: IGitTreeEntry[];
     }) => Promise<{ data: { sha: string } }>;
     createCommit: (params: {
@@ -482,6 +482,45 @@ async function fastForwardBranch(
   }
 }
 
+async function seedEmptyDefaultBranch(
+  octokit: IGitHubGitClient,
+  owner: string,
+  repo: string,
+  defaultBranch: string,
+): Promise<void> {
+  const blob = await octokit.git.createBlob({
+    owner,
+    repo,
+    content: Buffer.from('# Repository\n', 'utf8').toString('base64'),
+    encoding: 'base64',
+  });
+  const tree = await octokit.git.createTree({
+    owner,
+    repo,
+    tree: [
+      {
+        path: 'README.md',
+        mode: '100644',
+        type: 'blob',
+        sha: blob.data.sha,
+      },
+    ],
+  });
+  const commit = await octokit.git.createCommit({
+    owner,
+    repo,
+    message: 'chore: seed empty repository',
+    tree: tree.data.sha,
+    parents: [],
+  });
+  await octokit.git.createRef({
+    owner,
+    repo,
+    ref: `refs/heads/${defaultBranch}`,
+    sha: commit.data.sha,
+  });
+}
+
 export async function publishDraftPullRequest(
   params: IPublishDraftPullRequestParams,
   dependencies: IGitHubDraftPullRequestDependencies = {},
@@ -530,11 +569,29 @@ export async function publishDraftPullRequest(
     );
   }
 
-  const baseRef = await octokit.git.getRef({
-    owner: params.owner,
-    repo: params.repo,
-    ref: `heads/${baseBranch}`,
-  });
+  let baseRef: { data: { object: { sha: string } } };
+  try {
+    baseRef = await octokit.git.getRef({
+      owner: params.owner,
+      repo: params.repo,
+      ref: `heads/${baseBranch}`,
+    });
+  } catch (error: unknown) {
+    if (!isNotFoundError(error)) {
+      throw error;
+    }
+    await seedEmptyDefaultBranch(
+      octokit,
+      params.owner,
+      params.repo,
+      baseBranch,
+    );
+    baseRef = await octokit.git.getRef({
+      owner: params.owner,
+      repo: params.repo,
+      ref: `heads/${baseBranch}`,
+    });
+  }
   const baseCommitSha = baseRef.data.object.sha;
   const baseCommit = await octokit.git.getCommit({
     owner: params.owner,

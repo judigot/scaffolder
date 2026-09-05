@@ -397,9 +397,7 @@ describe('scaffoldToPullRequest', () => {
     const loadRemoteUserFiles = vi.fn(() =>
       Promise.resolve(createUserFiles([], 'ORM Schema - Knex')),
     );
-    const loadUserFiles = vi.fn(() =>
-      createUserFiles([], 'ORM Schema - Knex'),
-    );
+    const loadUserFiles = vi.fn(() => createUserFiles([], 'ORM Schema - Knex'));
     const publish = vi.fn(() =>
       Promise.resolve({
         prUrl: 'https://github.com/judigot/bookingwars/pull/2',
@@ -499,9 +497,7 @@ describe('scaffoldToPullRequest', () => {
   });
 
   it('does not fetch a remote files repo for a legacy project name', async () => {
-    const loadRemoteUserFiles = vi.fn(() =>
-      Promise.resolve(createUserFiles()),
-    );
+    const loadRemoteUserFiles = vi.fn(() => Promise.resolve(createUserFiles()));
     const publish = vi.fn(() =>
       Promise.resolve({
         prUrl: 'https://github.com/judigot/bookingwars/pull/7',
@@ -559,6 +555,83 @@ describe('scaffoldToPullRequest', () => {
     });
 
     expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unpinned template_repo before building', async () => {
+    const buildProject = vi.fn();
+    const publish = vi.fn();
+
+    await expect(
+      scaffoldToPullRequest(
+        {
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+          target_repo: 'judigot/bookingwars',
+          template_repo:
+            'https://github.com/judigot/template-monorepo/tree/main',
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          buildProject,
+          publish,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'TEMPLATE_REPO_UNPINNED',
+      status: 400,
+    });
+
+    expect(buildProject).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it('creates an org repo then publishes when create_repo is true', async () => {
+    const createRepo = vi.fn(() =>
+      Promise.resolve({
+        created: true,
+        repoUrl: 'https://github.com/acme/new-app',
+      }),
+    );
+    const publish = vi.fn(() =>
+      Promise.resolve({
+        prUrl: 'https://github.com/acme/new-app/pull/1',
+        prNumber: 1,
+        branch: 'scaffolder/hono-react-ab12',
+        commitSha: 'commit-sha',
+        filesCreated: 1,
+        baseBranch: 'main',
+      }),
+    );
+
+    const result = await scaffoldToPullRequest(
+      {
+        schemaInfo: validSchemaInfo,
+        project: 'hono-react',
+        target_repo: 'acme/new-app',
+        create_repo: true,
+      },
+      {
+        auth0UserId: 'scaffolder-agent',
+        loadUserFiles: () => createUserFiles(),
+        buildProject: () =>
+          Promise.resolve({
+            structure: [{ type: 'file', name: 'README.md', content: '# app' }],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          }),
+        createRepo,
+        publish,
+        randomId: () => 'ab12',
+      },
+    );
+
+    expect(createRepo).toHaveBeenCalledWith({
+      owner: 'acme',
+      repo: 'new-app',
+      auth0UserId: 'scaffolder-agent',
+    });
+    expect(result.repoCreated).toBe(true);
+    expect(result.prUrl).toBe('https://github.com/acme/new-app/pull/1');
   });
 
   it('refuses an explicit main branch', async () => {

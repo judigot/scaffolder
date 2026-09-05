@@ -32,8 +32,6 @@ export function createAgentScaffoldRouter(
       verifyAgentScaffoldAuth(authorizationHeader, {
         agentApiKey: dependencies.agentApiKey,
       }));
-  const scaffold = dependencies.scaffold ?? scaffoldToPullRequest;
-
   const app = new Hono();
   app.use('*', cors());
 
@@ -65,7 +63,11 @@ export function createAgentScaffoldRouter(
     }
 
     try {
-      const result = await scaffold(parsed.data);
+      const result = await (dependencies.scaffold === undefined
+        ? scaffoldToPullRequest(parsed.data, {
+            auth0UserId: authResult.auth0UserId,
+          })
+        : dependencies.scaffold(parsed.data));
       const status = result.updated === true ? 200 : 201;
       return c.json({ ok: true, ...result }, status);
     } catch (error: unknown) {

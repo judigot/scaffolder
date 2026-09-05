@@ -18,6 +18,14 @@ import {
   buildProjectFiles,
   type IBuildProjectFilesResult,
 } from '@/utils/project-builder/buildProjectFiles.ts';
+import type { ILoadCoreFilesOptions } from '@/utils/project-builder/utils/loadCoreFiles.ts';
+import { CoreMergeError } from '@/utils/project-builder/utils/loadCoreFiles.ts';
+import { parseTemplateRepo } from '@/utils/parseTemplateRepo.ts';
+import { fetchPinnedRepoTarball } from '@/utils/fetchPinnedRepoTarball.ts';
+import {
+  AgentCreateRepoError,
+  createAgentTargetRepository,
+} from '@/app/services/agentCreateRepoService.ts';
 import {
   SCAFFOLDER_MESSAGE_CODES,
   type IScaffolderMessage,
@@ -49,7 +57,7 @@ import {
 } from '@/app/services/githubDraftPullRequestService.ts';
 
 export class AgentScaffoldError extends Error {
-  readonly status: 400 | 403 | 500;
+  readonly status: 400 | 403 | 409 | 500;
   readonly code: string;
   readonly details?: unknown;
   readonly installationUrl?: string;
@@ -57,7 +65,7 @@ export class AgentScaffoldError extends Error {
   constructor(
     message: string,
     options: {
-      status: 400 | 403 | 500;
+      status: 400 | 403 | 409 | 500;
       code: string;
       details?: unknown;
       installationUrl?: string;
@@ -76,6 +84,8 @@ export interface IAgentScaffoldResult extends IDraftPullRequestResult {
   projectName: string;
   targetRepo: string;
   tables: string[];
+  repoCreated?: boolean;
+  templateSha?: string;
 }
 
 export interface IRemoteScaffolderFilesRequest {
@@ -85,15 +95,24 @@ export interface IRemoteScaffolderFilesRequest {
 }
 
 export interface IAgentScaffoldServiceDependencies {
+  auth0UserId?: string;
   loadUserFiles?: () => IStructure;
   loadRemoteUserFiles?: (
     request: IRemoteScaffolderFilesRequest,
   ) => Promise<IStructure>;
+  loadTemplateFiles?: (templateRepo: string) => Promise<IStructure>;
+  createRepo?: (params: {
+    owner: string;
+    repo: string;
+    auth0UserId?: string;
+  }) => Promise<{ created: boolean; repoUrl: string }>;
   buildProject?: (
     projectYamlPath: string,
     userFiles: IStructure,
     schemaInfo: ISchemaInfo[],
     formData: IFormStore,
+    userMetadata?: Record<string, unknown> | null,
+    coreOptions?: ILoadCoreFilesOptions,
   ) => Promise<IBuildProjectFilesResult>;
   publish?: (
     params: IPublishDraftPullRequestParams,
@@ -275,6 +294,95 @@ function resolveTargetedPullNumber(
   return parsed.prNumber;
 }
 
+async function resolveTemplateBaseLayer(
+  templateRepo: string | undefined,
+  loadTemplateFiles: IAgentScaffoldServiceDependencies['loadTemplateFiles'],
+): Promise<{ layer?: IStructure; sha?: string }> {
+  if (templateRepo === undefined || templateRepo === '') {
+    return {};
+  }
+
+  let parsed;
+  try {
+    parsed = parseTemplateRepo(templateRepo);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Invalid template_repo';
+    const unpinned = /unpinned/i.test(message);
+    throw new AgentScaffoldError(message, {
+      status: 400,
+      code: unpinned ? 'TEMPLATE_REPO_UNPINNED' : 'INVALID_TEMPLATE_REPO',
+    });
+  }
+
+  try {
+    if (loadTemplateFiles !== undefined) {
+      return {
+        layer: await loadTemplateFiles(templateRepo),
+        sha: parsed.sha,
+      };
+    }
+    const files = await fetchPinnedRepoTarball(parsed);
+    return {
+      layer: convertPublicRepoFilesToStructure(files),
+      sha: parsed.sha,
+    };
+  } catch (error: unknown) {
+    if (error instanceof AgentScaffoldError) {
+      throw error;
+    }
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Failed to fetch pinned template tarball';
+    throw new AgentScaffoldError(message, {
+      status: 400,
+      code: 'TEMPLATE_FETCH_FAILED',
+      details: {
+        templateRepo: `${parsed.owner}/${parsed.repo}`,
+        sha: parsed.sha,
+      },
+    });
+  }
+}
+
+async function createTargetRepoIfRequested(
+  request: IAgentScaffoldRequest,
+  targetRepo: IParsedTargetRepo,
+  dependencies: IAgentScaffoldServiceDependencies,
+): Promise<boolean> {
+  if (request.create_repo !== true) {
+    return false;
+  }
+
+  const createRepo =
+    dependencies.createRepo ??
+    ((params) =>
+      createAgentTargetRepository(
+        { owner: params.owner, repo: params.repo },
+        { auth0UserId: params.auth0UserId },
+      ));
+
+  try {
+    const created = await createRepo({
+      owner: targetRepo.owner,
+      repo: targetRepo.repo,
+      auth0UserId: dependencies.auth0UserId,
+    });
+    return created.created;
+  } catch (error: unknown) {
+    if (error instanceof AgentCreateRepoError) {
+      throw new AgentScaffoldError(error.message, {
+        status: error.status,
+        code: error.code,
+        details: error.details,
+        installationUrl: error.installationUrl,
+      });
+    }
+    throw error;
+  }
+}
+
 export async function scaffoldToPullRequest(
   request: IAgentScaffoldRequest,
   dependencies: IAgentScaffoldServiceDependencies = {},
@@ -282,9 +390,7 @@ export async function scaffoldToPullRequest(
   let projectReference: IParsedProjectReference;
   let targetRepo: IParsedTargetRepo;
   try {
-    projectReference = parseProjectReference(
-      resolveProjectIdentifier(request),
-    );
+    projectReference = parseProjectReference(resolveProjectIdentifier(request));
     targetRepo = parseTargetRepo(request.target_repo);
   } catch (error: unknown) {
     const message =
@@ -294,6 +400,16 @@ export async function scaffoldToPullRequest(
       code: 'INVALID_REFERENCE',
     });
   }
+
+  const templateBase = await resolveTemplateBaseLayer(
+    request.template_repo,
+    dependencies.loadTemplateFiles,
+  );
+  const repoCreated = await createTargetRepoIfRequested(
+    request,
+    targetRepo,
+    dependencies,
+  );
 
   const schemaInfo = resolveSchemaInfo(request.schemaInfo);
   const userFiles = await resolveUserFiles(projectReference, dependencies);
@@ -352,15 +468,32 @@ export async function scaffoldToPullRequest(
   }
 
   const buildProject = dependencies.buildProject ?? buildProjectFiles;
-  const buildResult = await buildProject(
-    projectReference.projectYamlPath,
-    userFiles,
-    schemaInfo,
-    createAgentFormData(project.name, projectReference.filesRepoUrl),
-  );
+  let buildResult: IBuildProjectFilesResult;
+  try {
+    buildResult = await buildProject(
+      projectReference.projectYamlPath,
+      userFiles,
+      schemaInfo,
+      createAgentFormData(project.name, projectReference.filesRepoUrl),
+      undefined,
+      templateBase.layer === undefined
+        ? undefined
+        : { remoteBaseLayer: templateBase.layer },
+    );
+  } catch (error: unknown) {
+    if (error instanceof CoreMergeError) {
+      throw new AgentScaffoldError(error.message, {
+        status: 400,
+        code: error.code,
+      });
+    }
+    throw error;
+  }
 
   if (buildResult.hasErrors === true) {
-    const leftoverMessage = findLeftoverPlaceholderMessage(buildResult.messages);
+    const leftoverMessage = findLeftoverPlaceholderMessage(
+      buildResult.messages,
+    );
     if (leftoverMessage !== undefined) {
       throw new AgentScaffoldError(leftoverMessage.title, {
         status: 400,
@@ -421,6 +554,8 @@ export async function scaffoldToPullRequest(
       projectName: project.name,
       targetRepo: `${targetRepo.owner}/${targetRepo.repo}`,
       tables: schemaInfo.map((table) => table.tableName),
+      repoCreated,
+      templateSha: templateBase.sha,
     };
   } catch (error: unknown) {
     if (error instanceof GitHubDraftPullRequestError) {

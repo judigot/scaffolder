@@ -21,7 +21,10 @@ import { detectCircularPlaceholderImports } from '@/utils/project-builder/utils/
 import { detectLeftoverTemplateMarkers } from '@/utils/project-builder/utils/detectLeftoverTemplateMarkers.ts';
 import { extractPlaceholdersFromYaml } from '@/utils/project-builder/utils/extractPlaceholdersFromYaml.ts';
 import { findFileInStructure } from '@/utils/project-builder/utils/findFileInStructure.ts';
-import { loadCoreFiles } from '@/utils/project-builder/utils/loadCoreFiles.ts';
+import {
+  loadCoreFiles,
+  type ILoadCoreFilesOptions,
+} from '@/utils/project-builder/utils/loadCoreFiles.ts';
 import { loadSchemas } from '@/utils/project-builder/utils/loadSchemas.ts';
 import { mergeCoreFilesWithScaffolded } from '@/utils/project-builder/utils/mergeCoreFiles.ts';
 import { processCoreFiles } from '@/utils/project-builder/utils/processCoreFiles.ts';
@@ -48,6 +51,7 @@ export const buildProjectFiles = async (
   schemaInfo: ISchemaInfo[],
   formData: IFormStore,
   userMetadata?: Record<string, unknown> | null,
+  coreOptions: ILoadCoreFilesOptions = {},
 ): Promise<IBuildProjectFilesResult> => {
   const filesUsingUserEnv: string[] = [];
   const filesFailedToFormat: IFailedFormatEntry[] = [];
@@ -276,7 +280,7 @@ export const buildProjectFiles = async (
       };
     }
 
-    const rawCoreFiles = loadCoreFiles(projectYamlPath, userFiles);
+    const rawCoreFiles = loadCoreFiles(projectYamlPath, userFiles, coreOptions);
 
     // Load auth schemas if $USE_SCHEMA is specified
     const authSchema = loadSchemas(projectYamlPath, userFiles);
@@ -299,13 +303,20 @@ export const buildProjectFiles = async (
       !Array.isArray(parsedYaml)
     ) {
       // Remove special directives from YAML processing
-      const entries = Object.entries(parsedYaml).filter(
-        ([key]) =>
+      const entries = Object.entries(parsedYaml).filter(([key, value]) => {
+        if (key === 'source' && typeof value === 'string') {
+          return false;
+        }
+        return (
           key !== '$USE_CORE' &&
           key !== '$USE_SCHEMA' &&
           key !== '$SCHEMA_FILTER' &&
-          key !== '$CONFIG',
-      );
+          key !== '$CONFIG' &&
+          key !== '$BASE' &&
+          key !== '$SOURCE' &&
+          key !== 'replace'
+        );
+      });
       yamlStructureToProcess = Object.fromEntries(entries);
     }
 
@@ -368,7 +379,8 @@ export const buildProjectFiles = async (
 
     scanForUserEnv(filteredFiles);
 
-    const leftoverTemplateMarkers = detectLeftoverTemplateMarkers(filteredFiles);
+    const leftoverTemplateMarkers =
+      detectLeftoverTemplateMarkers(filteredFiles);
     if (leftoverTemplateMarkers.length > 0) {
       const firstLeftoverFile = leftoverTemplateMarkers[0]?.filePath;
       const message = createScaffolderMessage({
@@ -376,8 +388,7 @@ export const buildProjectFiles = async (
         title: 'Generated files still contain template markers',
         severity: 'error',
         details: leftoverTemplateMarkers.map(
-          (location) =>
-            `${location.filePath}: ${location.markers.join(', ')}`,
+          (location) => `${location.filePath}: ${location.markers.join(', ')}`,
         ),
         suggestion:
           'Wrap optional schema fields in <@@IF@@> conditions so a valid schema never leaves <@@> or <@@IF@@> tags. Leftover markers are reported before prettier so the missing replacement is visible.',
