@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import agentRouter from './agent.ts';
 import agentScaffoldRouter from './agentScaffold.ts';
+import agentScaffoldResolveRouter from './agentScaffoldResolve.ts';
 import chatRouter from './chat.ts';
 import checkGitHubAppInstallationRouter from './checkGitHubAppInstallation.ts';
 import checkGitHubExportOptionsRouter from './checkGitHubExportOptions.ts';
@@ -63,6 +64,7 @@ router.route(
 router.route('/check-github-export-options', checkGitHubExportOptionsRouter);
 router.route('/agent', agentRouter);
 router.route('/agent-scaffold', agentScaffoldRouter);
+router.route('/agent-scaffold/resolve', agentScaffoldResolveRouter);
 router.route('/chat', chatRouter);
 router.route('/repo-agent', repoAgentRouter);
 router.route('/opencode', opencodeRouter);

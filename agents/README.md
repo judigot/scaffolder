@@ -6,6 +6,11 @@ Project-specific agents for this repository.
 
 See `agents/*.md` files in this directory.
 
+Parity and decision agents:
+
+- `jev-decision-engineer` — optional Jev classification and deterministic fallbacks
+- `golden-parity-engineer` — cross-framework contract and runtime parity
+
 ## Agent File Format
 
 All agents follow the Claude Code standard format with YAML frontmatter:

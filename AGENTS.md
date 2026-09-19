@@ -37,6 +37,8 @@ claude --plugin-dir ~/ai --plugin-dir .
 | `health-check`           | Health monitoring and diagnostics                   |
 | `project-builder`        | Project scaffolding and code generation             |
 | `responsive-design`      | Mobile/desktop responsive layouts and UI patterns   |
+| `jev-decision-engineer`  | Optional Jev routing with deterministic fallbacks    |
+| `golden-parity-engineer` | Cross-framework golden application parity           |
 
 ## Directory Structure
 
