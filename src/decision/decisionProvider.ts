@@ -15,13 +15,13 @@ export const DECISION_SUBSYSTEMS = [
 
 export type DecisionSubsystem = (typeof DECISION_SUBSYSTEMS)[number];
 
-export interface DecisionRequest {
+export interface IDecisionRequest {
   input: string;
   schemaInfoPresent?: boolean;
   failure?: string;
 }
 
-export interface DecisionResult {
+export interface IDecisionResult {
   affectedSubsystem: DecisionSubsystem;
   recommendedTests: string[];
   recommendedAgent: 'project-builder' | 'project-generator' | 'golden-parity-engineer';
@@ -30,8 +30,8 @@ export interface DecisionResult {
   provider: 'jev' | 'fake';
 }
 
-export interface DecisionProvider {
-  decide(request: DecisionRequest): Promise<DecisionResult>;
+export interface IDecisionProvider {
+  decide(request: IDecisionRequest): Promise<IDecisionResult>;
 }
 
 const subsystemCriteria = Object.fromEntries(
@@ -51,8 +51,15 @@ const testsForSubsystem: Record<DecisionSubsystem, string[]> = {
   'agent-scaffold': ['agent-scaffold API tests'],
 };
 
+function isDecisionSubsystem(value: unknown): value is DecisionSubsystem {
+  return (
+    typeof value === 'string' &&
+    (DECISION_SUBSYSTEMS as readonly string[]).includes(value)
+  );
+}
+
 function recommendationFor(subsystem: DecisionSubsystem): Pick<
-  DecisionResult,
+  IDecisionResult,
   'recommendedAgent' | 'needsFrontierModel'
 > {
   if (subsystem === 'schema-info') {
@@ -66,7 +73,7 @@ function recommendationFor(subsystem: DecisionSubsystem): Pick<
 
 export function createJevDecisionProvider(
   client: TypeSafeClient = new TypeSafeClient(),
-): DecisionProvider {
+): IDecisionProvider {
   return {
     async decide(request) {
       const response = await client.systemOne({
@@ -83,7 +90,9 @@ export function createJevDecisionProvider(
         },
       });
       const answer = response.answers.affectedSubsystem;
-      const subsystem = answer.choice as DecisionSubsystem;
+      const subsystem = isDecisionSubsystem(answer.choice)
+        ? answer.choice
+        : 'project-builder';
       const recommendation = recommendationFor(subsystem);
       return {
         affectedSubsystem: subsystem,
@@ -96,9 +105,9 @@ export function createJevDecisionProvider(
   };
 }
 
-export function createFakeDecisionProvider(): DecisionProvider {
+export function createFakeDecisionProvider(): IDecisionProvider {
   return {
-    async decide(request) {
+    decide(request) {
       const input = `${request.input} ${request.failure ?? ''}`.toLowerCase();
       const subsystem: DecisionSubsystem = input.includes('openapi')
         ? 'openapi'
@@ -109,13 +118,12 @@ export function createFakeDecisionProvider(): DecisionProvider {
             : input.includes('auth')
               ? 'auth'
               : 'project-builder';
-      return {
+      return Promise.resolve({
         affectedSubsystem: subsystem,
         recommendedTests: testsForSubsystem[subsystem],
         ...recommendationFor(subsystem),
         provider: 'fake',
-      };
+      });
     },
   };
 }
-

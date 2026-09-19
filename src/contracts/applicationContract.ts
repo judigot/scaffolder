@@ -1,6 +1,6 @@
 import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 
-export interface ApplicationEntityContract {
+export interface IApplicationEntityContract {
   name: string;
   columns: ISchemaInfo['columnsInfo'];
   relationships: {
@@ -11,11 +11,11 @@ export interface ApplicationEntityContract {
   };
 }
 
-export interface ApplicationContract {
+export interface IApplicationContract {
   version: 1;
   database: 'postgresql';
-  entities: ApplicationEntityContract[];
-  operations: Array<'list' | 'get' | 'create' | 'update' | 'delete'>;
+  entities: IApplicationEntityContract[];
+  operations: ('list' | 'get' | 'create' | 'update' | 'delete')[];
 }
 
 /**
@@ -25,7 +25,7 @@ export interface ApplicationContract {
  */
 export function createApplicationContract(
   schemaInfo: ISchemaInfo[],
-): ApplicationContract {
+): IApplicationContract {
   return {
     version: 1,
     database: 'postgresql',
@@ -42,4 +42,3 @@ export function createApplicationContract(
     operations: ['list', 'get', 'create', 'update', 'delete'],
   };
 }
-

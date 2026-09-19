@@ -28,7 +28,7 @@ export function createAgentScaffoldResolveRouter(dependencies: {
 
   app.post('/', async (c) => {
     const authResult = await verifyAuthToken(c.req.header('authorization'));
-    if (!authResult.ok) return c.json(authResult.body, authResult.status);
+    if (!authResult.ok) {return c.json(authResult.body, authResult.status);}
 
     let body: unknown;
     try {
@@ -51,7 +51,9 @@ export function createAgentScaffoldResolveRouter(dependencies: {
     }
 
     try {
-      const provider = process.env.TYPESAFE_API_KEY
+      const provider =
+        typeof process.env.TYPESAFE_API_KEY === 'string' &&
+        process.env.TYPESAFE_API_KEY.trim() !== ''
         ? createJevDecisionProvider()
         : createFakeDecisionProvider();
       return c.json({ ok: true, decision: await provider.decide(parsed.data) });

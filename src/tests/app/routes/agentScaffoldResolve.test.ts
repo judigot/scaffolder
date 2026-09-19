@@ -4,7 +4,7 @@ import { createAgentScaffoldResolveRouter } from '@/app/routes/agentScaffoldReso
 describe('POST /agent-scaffold/resolve', () => {
   it('returns deterministic recommendations when Jev is unavailable', async () => {
     const app = createAgentScaffoldResolveRouter({
-      verifyAuthToken: async () => ({
+      verifyAuthToken: () => Promise.resolve({
         ok: true,
         status: 200,
         auth0UserId: 'test-user',
@@ -22,10 +22,7 @@ describe('POST /agent-scaffold/resolve', () => {
     );
 
     expect(response.status).toBe(200);
-    const body = (await response.json()) as {
-      ok: boolean;
-      decision: { affectedSubsystem: string; provider: string };
-    };
+    const body = await response.json();
     expect(body).toMatchObject({
       ok: true,
       decision: { affectedSubsystem: 'migration', provider: 'fake' },
@@ -34,7 +31,7 @@ describe('POST /agent-scaffold/resolve', () => {
 
   it('rejects an empty decision request', async () => {
     const app = createAgentScaffoldResolveRouter({
-      verifyAuthToken: async () => ({
+      verifyAuthToken: () => Promise.resolve({
         ok: true,
         status: 200,
         auth0UserId: 'test-user',
