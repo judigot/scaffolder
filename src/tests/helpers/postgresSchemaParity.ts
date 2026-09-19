@@ -1,7 +1,7 @@
 /** Semantic PostgreSQL catalog normalisation used by golden migration tests. */
 export type CatalogRow = Record<string, unknown>;
 
-export interface NormalizedPostgresSchema {
+export interface INormalizedPostgresSchema {
   tables: Record<string, {
     columns: Record<string, { type: string; nullable: boolean; default: string | null }>;
     primaryKey: string[];
@@ -11,9 +11,14 @@ export interface NormalizedPostgresSchema {
   }>;
 }
 
-const text = (value: unknown): string => String(value ?? '').trim();
+const text = (value: unknown): string => {
+  if (value == null) return '';
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') return value.toString().trim();
+  return '';
+};
 const bool = (value: unknown): boolean => value === true || value === 't' || value === 'true';
-const list = (value: unknown): string[] => Array.isArray(value) ? value.map(text) : text(value).split(',').map((v) => v.trim()).filter(Boolean);
+const list = (value: unknown): string[] => Array.isArray(value) ? value.map(text) : text(value).split(',').map((v) => v.trim()).filter((v) => v.length > 0);
 
 /**
  * Convert rows from pg_catalog information-schema queries into a deterministic,
@@ -27,8 +32,8 @@ export function normalizePostgresCatalog(rows: {
   foreignKeys?: CatalogRow[];
   uniqueConstraints?: CatalogRow[];
   indexes?: CatalogRow[];
-}): NormalizedPostgresSchema {
-  const result: NormalizedPostgresSchema = { tables: {} };
+}): INormalizedPostgresSchema {
+  const result: INormalizedPostgresSchema = { tables: {} };
   for (const row of rows.tables ?? []) {
     const name = text(row.table_name ?? row.tableName);
     if (name) result.tables[name] = { columns: {}, primaryKey: [], foreignKeys: [], uniqueConstraints: [], indexes: [] };
@@ -55,7 +60,7 @@ export function normalizePostgresCatalog(rows: {
   return result;
 }
 
-export function schemaParityDifferences(expected: NormalizedPostgresSchema, actual: NormalizedPostgresSchema): string[] {
+export function schemaParityDifferences(expected: INormalizedPostgresSchema, actual: INormalizedPostgresSchema): string[] {
   const differences: string[] = [];
   const names = new Set([...Object.keys(expected.tables), ...Object.keys(actual.tables)]);
   for (const name of [...names].sort()) {
