@@ -34,9 +34,20 @@ export interface IDecisionProvider {
   decide(request: IDecisionRequest): Promise<IDecisionResult>;
 }
 
-const subsystemCriteria = Object.fromEntries(
-  DECISION_SUBSYSTEMS.map((subsystem) => [subsystem, null]),
-) as Record<DecisionSubsystem, null>;
+const subsystemCriteria: Record<DecisionSubsystem, null> = {
+  'schema-info': null,
+  'project-builder': null,
+  core: null,
+  project: null,
+  'golden-test': null,
+  auth: null,
+  migration: null,
+  openapi: null,
+  frontend: null,
+  'agent-scaffold': null,
+};
+
+const decisionSubsystemSet = new Set<string>(DECISION_SUBSYSTEMS);
 
 const testsForSubsystem: Record<DecisionSubsystem, string[]> = {
   'schema-info': ['schemaInfo parser tests', 'application contract tests'],
@@ -54,7 +65,7 @@ const testsForSubsystem: Record<DecisionSubsystem, string[]> = {
 function isDecisionSubsystem(value: unknown): value is DecisionSubsystem {
   return (
     typeof value === 'string' &&
-    (DECISION_SUBSYSTEMS as readonly string[]).includes(value)
+    decisionSubsystemSet.has(value)
   );
 }
 

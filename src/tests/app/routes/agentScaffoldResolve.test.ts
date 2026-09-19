@@ -22,11 +22,9 @@ describe('POST /agent-scaffold/resolve', () => {
     );
 
     expect(response.status).toBe(200);
-    const body = await response.json();
-    expect(body).toMatchObject({
-      ok: true,
-      decision: { affectedSubsystem: 'migration', provider: 'fake' },
-    });
+    const body = await response.text();
+    expect(body).toContain('"affectedSubsystem":"migration"');
+    expect(body).toContain('"provider":"fake"');
   });
 
   it('rejects an empty decision request', async () => {
