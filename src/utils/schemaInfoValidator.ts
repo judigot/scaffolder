@@ -71,7 +71,41 @@ const columnInfoSchema = z.object({
   primary_key: z.literal(true).optional(),
   unique: z.literal(true).optional(),
   foreign_key: foreignKeySchema.optional(),
+  validation: z
+    .object({
+      minLength: z.number().int().min(0).optional(),
+      maxLength: z.number().int().min(0).optional(),
+      min: z.number().optional(),
+      max: z.number().optional(),
+      pattern: z.string().optional(),
+    })
+    .optional(),
 });
+
+const apiExposureSchema = z
+  .object({
+    list: z.boolean().optional(),
+    get: z.boolean().optional(),
+    create: z.boolean().optional(),
+    update: z.boolean().optional(),
+    delete: z.boolean().optional(),
+  })
+  .strict();
+const authorizationSchema = z
+  .object({
+    read: z.array(z.string().min(1)).optional(),
+    create: z.array(z.string().min(1)).optional(),
+    update: z.array(z.string().min(1)).optional(),
+    delete: z.array(z.string().min(1)).optional(),
+  })
+  .strict();
+const lifecycleSchema = z
+  .object({
+    states: z.array(z.string().min(1)).min(1),
+    initialState: z.string().min(1).optional(),
+    transitions: z.record(z.string(), z.array(z.string().min(1))).optional(),
+  })
+  .strict();
 
 /**
  * Zod schema for validating pivot relationships
@@ -107,6 +141,10 @@ const schemaInfoSchema = z
     belongsToMany: z.array(z.string()).optional(),
     pivotRelationships: z.array(pivotRelationshipSchema).optional(),
     compositePrimaryKey: z.array(z.string()).min(2).optional(),
+    apiExposure: apiExposureSchema.optional(),
+    authRequired: z.boolean().optional(),
+    authorization: authorizationSchema.optional(),
+    lifecycle: lifecycleSchema.optional(),
   })
   .refine(
     (table) => {
@@ -203,11 +241,48 @@ export const schemaInfoArraySchema = z
       return true;
     },
     { message: 'Relationship references a non-existent table' },
+  )
+  .refine(
+    (tables) => tables.every((table) => {
+      const lifecycle = table.lifecycle;
+      if (!lifecycle) return true;
+      if (lifecycle.initialState && !lifecycle.states.includes(lifecycle.initialState)) return false;
+      return Object.entries(lifecycle.transitions ?? {}).every(([from, targets]) =>
+        lifecycle.states.includes(from) && targets.every((target) => lifecycle.states.includes(target)),
+      );
+    }),
+    { message: 'Lifecycle references a non-existent state' },
   );
 
 export type SchemaInfoArray = z.infer<typeof schemaInfoArraySchema>;
 export type SchemaInfo = z.infer<typeof schemaInfoSchema>;
 export type ColumnInfo = z.infer<typeof columnInfoSchema>;
+
+/** Capabilities intentionally supported by the v2 foundation. */
+export const SUPPORTED_SCHEMA_CAPABILITIES = [
+  'relationships',
+  'apiExposure',
+  'validation',
+  'authRequired',
+  'authorization',
+  'lifecycle',
+] as const;
+
+export type SchemaCapability = (typeof SUPPORTED_SCHEMA_CAPABILITIES)[number];
+
+/** Return an actionable error for capabilities not implemented by adapters. */
+export function unsupportedSchemaCapabilities(
+  capabilities: string[],
+): string[] {
+  return capabilities
+    .filter((capability) => !SUPPORTED_SCHEMA_CAPABILITIES.includes(capability as SchemaCapability))
+    .map((capability) => `Unsupported schema capability: ${capability}`);
+}
+
+export function assertSupportedSchemaCapabilities(capabilities: string[]): void {
+  const errors = unsupportedSchemaCapabilities(capabilities);
+  if (errors.length > 0) throw new Error(errors.join('; '));
+}
 
 /**
  * Validation result with detailed error information
