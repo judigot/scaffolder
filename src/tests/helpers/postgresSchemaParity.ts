@@ -40,7 +40,7 @@ export function normalizePostgresCatalog(rows: {
   }
   const table = (row: CatalogRow) => {
     const name = text(row.table_name ?? row.tableName);
-    if (!result.tables[name]) result.tables[name] = { columns: {}, primaryKey: [], foreignKeys: [], uniqueConstraints: [], indexes: [] };
+    if (!Object.prototype.hasOwnProperty.call(result.tables, name)) result.tables[name] = { columns: {}, primaryKey: [], foreignKeys: [], uniqueConstraints: [], indexes: [] };
     return result.tables[name];
   };
   for (const row of rows.columns ?? []) {
@@ -64,8 +64,8 @@ export function schemaParityDifferences(expected: INormalizedPostgresSchema, act
   const differences: string[] = [];
   const names = new Set([...Object.keys(expected.tables), ...Object.keys(actual.tables)]);
   for (const name of [...names].sort()) {
-    if (!expected.tables[name]) { differences.push(`table '${name}' is unexpected`); continue; }
-    if (!actual.tables[name]) { differences.push(`table '${name}' is missing`); continue; }
+    if (!Object.prototype.hasOwnProperty.call(expected.tables, name)) { differences.push(`table '${name}' is unexpected`); continue; }
+    if (!Object.prototype.hasOwnProperty.call(actual.tables, name)) { differences.push(`table '${name}' is missing`); continue; }
     const a = expected.tables[name]; const b = actual.tables[name];
     if (JSON.stringify(a.columns) !== JSON.stringify(b.columns)) differences.push(`table '${name}' columns differ`);
     if (JSON.stringify(a.primaryKey) !== JSON.stringify(b.primaryKey)) differences.push(`table '${name}' primary key differs`);
