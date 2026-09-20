@@ -11,6 +11,10 @@ export interface CrudParityOptions {
   id?: string | number;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 /**
  * Executes the shared create/read/list/update/delete flow.  Backends supply
  * only a request adapter, which prevents the parity suite from growing
@@ -21,7 +25,7 @@ export async function runCrudParitySuite(
   options: CrudParityOptions,
 ): Promise<CrudResponse[]> {
   const created = await client.request('POST', options.collection, options.payload);
-  const id = options.id ?? (created.body as Record<string, unknown>)?.id;
+  const id = options.id ?? (isRecord(created.body) ? created.body.id : undefined);
   if (id === undefined || id === null) throw new Error('create response did not contain an id');
   const item = `${options.collection}/${encodeURIComponent(String(id))}`;
   const responses = [created];
