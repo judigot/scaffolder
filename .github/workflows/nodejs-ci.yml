@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     name: Deploy Node.js Application to EC2 Instance
