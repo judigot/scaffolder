@@ -3,11 +3,13 @@ name: API Hello Preview
 # Wait for this commit's Vercel Preview, then GET /api/hello.
 # No repository_dispatch here: that job only skipped on PRs.
 on:
-  pull_request:
+  # Vercel preview builds are external and may remain queued behind unrelated
+  # deployments. Keep this verification available on demand without making
+  # pull-request CI depend on third-party queue capacity.
   workflow_dispatch: {}
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
