@@ -45,6 +45,10 @@ jobs:
     needs: ci
     runs-on: ubuntu-latest
     environment: production
+    outputs:
+      deployment_url: ${{ steps.production.outputs.deployment_url }}
+      vercel_project_id: ${{ steps.project.outputs.project_id }}
+      vercel_org_id: ${{ steps.project.outputs.org_id }}
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_PROJECT_NAME: scaffolder
@@ -55,6 +59,7 @@ jobs:
           bun-version: '1.3.8'
 
       - name: Discover Vercel project
+        id: project
         shell: bash
         run: |
           set -euo pipefail
@@ -91,6 +96,8 @@ jobs:
 
           printf 'VERCEL_PROJECT_ID=%s\n' "$project_id" >> "$GITHUB_ENV"
           printf 'VERCEL_ORG_ID=%s\n' "$org_id" >> "$GITHUB_ENV"
+          printf 'project_id=%s\n' "$project_id" >> "$GITHUB_OUTPUT"
+          printf 'org_id=%s\n' "$org_id" >> "$GITHUB_OUTPUT"
 
           echo "Resolved Vercel project '$VERCEL_PROJECT_NAME'."
 
@@ -101,4 +108,38 @@ jobs:
         run: bunx vercel@59.23.2 build --prod --token="$VERCEL_TOKEN"
 
       - name: Deploy to Vercel production
-        run: bunx vercel@59.23.2 deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        id: production
+        shell: bash
+        run: |
+          set -euo pipefail
+          deployment_url="$(bunx vercel@59.23.2 deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+
+          case "$deployment_url" in
+            https://*.vercel.app)
+              ;;
+            *)
+              echo "::error::Unexpected Vercel deployment URL: $deployment_url"
+              exit 1
+              ;;
+          esac
+
+          printf 'deployment_url=%s\n' "$deployment_url" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "Production deployment: $deployment_url"
+
+  smoke:
+    name: Verify production /api/hello
+    needs: deploy
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_ID: ${{ needs.deploy.outputs.vercel_project_id }}
+      VERCEL_ORG_ID: ${{ needs.deploy.outputs.vercel_org_id }}
+      DEPLOYMENT_URL: ${{ needs.deploy.outputs.deployment_url }}
+      EXPECTED_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: GET /api/hello on production deployment
+        run: sh scripts/check-api-hello.sh "$DEPLOYMENT_URL"
