@@ -245,10 +245,19 @@ export const schemaInfoArraySchema = z
   .refine(
     (tables) => tables.every((table) => {
       const lifecycle = table.lifecycle;
-      if (!lifecycle) return true;
-      if (lifecycle.initialState && !lifecycle.states.includes(lifecycle.initialState)) return false;
+      if (!lifecycle) {
+        return true;
+      }
+      if (
+        lifecycle.initialState !== undefined &&
+        lifecycle.initialState !== '' &&
+        !lifecycle.states.includes(lifecycle.initialState)
+      ) {
+        return false;
+      }
       return Object.entries(lifecycle.transitions ?? {}).every(([from, targets]) =>
-        lifecycle.states.includes(from) && targets.every((target) => lifecycle.states.includes(target)),
+        lifecycle.states.includes(from) &&
+        targets.every((target) => lifecycle.states.includes(target)),
       );
     }),
     { message: 'Lifecycle references a non-existent state' },
@@ -274,14 +283,17 @@ export type SchemaCapability = (typeof SUPPORTED_SCHEMA_CAPABILITIES)[number];
 export function unsupportedSchemaCapabilities(
   capabilities: string[],
 ): string[] {
+  const supportedCapabilities = new Set<string>(SUPPORTED_SCHEMA_CAPABILITIES);
   return capabilities
-    .filter((capability) => !SUPPORTED_SCHEMA_CAPABILITIES.includes(capability as SchemaCapability))
+    .filter((capability) => !supportedCapabilities.has(capability))
     .map((capability) => `Unsupported schema capability: ${capability}`);
 }
 
 export function assertSupportedSchemaCapabilities(capabilities: string[]): void {
   const errors = unsupportedSchemaCapabilities(capabilities);
-  if (errors.length > 0) throw new Error(errors.join('; '));
+  if (errors.length > 0) {
+    throw new Error(errors.join('; '));
+  }
 }
 
 /**
