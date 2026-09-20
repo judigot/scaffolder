@@ -1,14 +1,8 @@
 name: Build and Deploy to EC2
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch: {}
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
