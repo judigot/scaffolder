@@ -1,11 +1,10 @@
-name: API Hello Preview
+name: API Hello Main Deployment
 
-# Wait for this commit's Vercel Preview, then GET /api/hello.
-# No repository_dispatch here: that job only skipped on PRs.
+# Wait for this main-branch Vercel deployment, then GET /api/hello.
 on:
-  # Vercel preview builds are external and may remain queued behind unrelated
-  # deployments. Keep this verification available on demand without making
-  # pull-request CI depend on third-party queue capacity.
+  push:
+    branches:
+      - main
   workflow_dispatch: {}
 
 concurrency:
@@ -18,8 +17,8 @@ permissions:
   statuses: read
 
 jobs:
-  preview-from-wait:
-    name: Smoke-test this commit's Vercel Preview
+  deployment-from-wait:
+    name: Smoke-test main Vercel deployment
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -32,10 +31,10 @@ jobs:
       - name: Test API hello checker
         run: sh scripts/check-api-hello.test.sh
 
-      - name: Find Vercel preview for this commit
+      - name: Find Vercel deployment for this commit
         id: deployment
         env:
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_SHA: ${{ github.sha }}
           # Observed Git-triggered deployments can take over eleven minutes.
           VERCEL_PREVIEW_TIMEOUT_SECONDS: 1200
           GITHUB_TOKEN: ${{ github.token }}
@@ -45,5 +44,5 @@ jobs:
       - name: GET /api/hello on the preview URL
         env:
           PREVIEW_URL: ${{ steps.deployment.outputs.deployment_url }}
-          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_SHA: ${{ github.sha }}
         run: sh scripts/check-api-hello.sh "$PREVIEW_URL"
