@@ -1,0 +1,35 @@
+#!/bin/sh
+set -eu
+scenario=${MOCK_SCENARIO:?}
+log=${MOCK_CALL_LOG:?}
+url=
+headers=
+while [ "$#" -gt 0 ]; do
+ case "$1" in
+  -D) headers=$2; shift 2;; -o|-w|-H|--max-time|--max-redirs) shift 2;; --fail|--silent|--show-error) shift;; *) url=$1; shift;;
+ esac
+done
+case "$url" in
+*/check-runs?*)
+ printf '%s\n' check >>"$log"
+  case "$scenario" in
+    success|pending_feedback|stale_sha|stale_then_ready|wrong_sha|missing_header) sha=$EXPECTED_SHA; pub=vercel; printf '{"check_runs":[{"name":"Vercel Preview Comments","head_sha":"%s","status":"completed","conclusion":"success","app":{"slug":"%s"},"output":{"summary":"https://demo.vercel.app"}}]}' "$sha" "$pub";;
+    wrong_publisher) printf '{"check_runs":[{"name":"Vercel Preview Comments","head_sha":"%s","status":"completed","conclusion":"success","app":{"slug":"other"},"output":{"summary":"https://demo.vercel.app"}}]}' "$EXPECTED_SHA" ;;
+    wrong_head) printf '{"check_runs":[{"name":"Vercel Preview Comments","head_sha":"wrong","status":"completed","conclusion":"success","app":{"slug":"vercel"},"output":{"summary":"https://demo.vercel.app"}}]}' ;;
+    malformed_check) printf '%s' not-json;; *) printf '{"check_runs":[]}';;
+  esac; exit 0;;
+ */statuses) printf '%s\n' status >>"$log"; [ "$scenario" = auth_failure ] && exit 22; case "$scenario" in
+    failure) printf '[{"context":"Vercel","creator":{"login":"vercel[bot]"},"state":"failure"}]';;
+    pending_feedback) printf '[{"context":"Vercel","creator":{"login":"vercel[bot]"},"state":"pending"},{"context":"feedback","creator":{"login":"vercel[bot]"},"state":"success"}]';;
+    success) printf '[{"context":"Vercel","creator":{"login":"vercel[bot]"},"state":"success"}]';;
+    exact_context) printf '[{"context":"Vercel Preview","creator":{"login":"vercel[bot]"},"state":"success"},{"context":"Vercel","creator":{"login":"someone"},"state":"success"}]';;
+   malformed_status) printf '%s' not-json;; *) printf '[{"context":"Vercel","creator":{"login":"vercel[bot]"},"state":"success"}]';; esac; exit 0;;
+esac
+case "$url" in https://*.vercel.app/api/hello) printf '%s\n' probe >>"$log";; *) echo "unknown URL: $url" >&2; exit 2;; esac
+if [ -n "$headers" ]; then case "$scenario" in
+  success|pending_feedback|wrong_publisher|malformed_status|malformed_check|auth_failure) printf 'HTTP/1.1 200 OK\nX-Vercel-Build-Sha: %s\n' "$EXPECTED_SHA" >"$headers"; printf 200;;
+  stale_sha) printf 'HTTP/1.1 200 OK\nX-Vercel-Build-Sha: stale\n' >"$headers"; printf 200;;
+  stale_then_ready) n=$(grep -c '^probe$' "$log" || true); sha=$EXPECTED_SHA; [ "$n" -eq 1 ] && sha=stale; printf 'HTTP/1.1 200 OK\nX-Vercel-Build-Sha: %s\n' "$sha" >"$headers"; printf 200;;
+ missing_header) printf 'HTTP/1.1 200 OK\n' >"$headers"; printf 200;;
+ wrong_sha) printf 'HTTP/1.1 200 OK\nX-Vercel-Build-Sha: wrong\n' >"$headers"; printf 200;;
+ *) printf 'HTTP/1.1 404 Not Found\n' >"$headers"; printf 404;; esac; fi

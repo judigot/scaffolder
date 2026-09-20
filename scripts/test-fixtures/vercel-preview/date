@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+counter=${MOCK_DATE_COUNTER:?}
+n=0
+[ -f "$counter" ] && n=$(cat "$counter")
+printf '%s\n' $((n + 1)) >"$counter"
+printf '%s\n' "$n"
