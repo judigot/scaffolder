@@ -32,6 +32,36 @@ export interface IColumnInfo {
     foreign_table_name: string;
     foreign_column_name: string;
   };
+  /** Framework-neutral application validation constraints. */
+  validation?: {
+    minLength?: number;
+    maxLength?: number;
+    min?: number;
+    max?: number;
+    pattern?: string;
+  };
+}
+
+export interface IApiExposure {
+  list?: boolean;
+  get?: boolean;
+  create?: boolean;
+  update?: boolean;
+  delete?: boolean;
+}
+
+export interface IAuthorization {
+  /** Names of roles/permissions required for each operation. */
+  read?: string[];
+  create?: string[];
+  update?: string[];
+  delete?: string[];
+}
+
+export interface ILifecycle {
+  states: string[];
+  initialState?: string;
+  transitions?: Record<string, string[]>;
 }
 
 /**
@@ -67,6 +97,11 @@ export interface ITableInfo {
    * Example: ["provider_id", "provider_user_id"] for OAuth account tables.
    */
   compositePrimaryKey?: string[];
+  /** Optional v2 application-contract metadata (all fields are backward compatible). */
+  apiExposure?: IApiExposure;
+  authRequired?: boolean;
+  authorization?: IAuthorization;
+  lifecycle?: ILifecycle;
 }
 
 export interface ISchemaInfo extends ITableInfo {
