@@ -82,7 +82,7 @@ else
 	RESOLVED_BYPASS=
 fi
 
-set -- curl -sS --max-redirs 0 -D "$HEADER_FILE" -o "$BODY_FILE" -w '%{http_code}'
+set -- curl -sS --connect-timeout 10 --max-time 60 --max-redirs 0 -D "$HEADER_FILE" -o "$BODY_FILE" -w '%{http_code}'
 HELLO_BYPASS_PRESENT=0
 if [ -n "$RESOLVED_BYPASS" ]; then
 	HELLO_BYPASS_PRESENT=1
@@ -101,7 +101,7 @@ fi
 
 CURL_STATUS=0
 HTTP_STATUS=$("$@") || CURL_STATUS=$?
-if [ "$CURL_STATUS" -ne 0 ] && [ -z "$HTTP_STATUS" ]; then
+if [ "$CURL_STATUS" -ne 0 ]; then
 	printf '%s\n' "curl failed with exit ${CURL_STATUS}" >&2
 	exit 1
 fi
@@ -110,7 +110,13 @@ HELLO_HTTP_STATUS=$HTTP_STATUS
 HELLO_BODY=$(cat "$BODY_FILE")
 HELLO_LOCATION=$(extract_header Location "$HEADER_FILE")
 HELLO_CONTENT_TYPE=$(extract_header Content-Type "$HEADER_FILE")
+HELLO_BUILD_SHA=$(extract_header x-vercel-build-sha "$HEADER_FILE")
 export HELLO_HTTP_STATUS HELLO_BODY HELLO_LOCATION HELLO_CONTENT_TYPE HELLO_BYPASS_PRESENT
+
+if [ -n "${EXPECTED_SHA:-}" ] && [ "$HELLO_BUILD_SHA" != "$EXPECTED_SHA" ]; then
+	printf '%s\n' "Expected x-vercel-build-sha ${EXPECTED_SHA}, got ${HELLO_BUILD_SHA:-missing}." >&2
+	exit 1
+fi
 
 assert_hello_response
 printf '%s\n' "$HELLO_BODY"
