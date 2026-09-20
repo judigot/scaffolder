@@ -10,6 +10,16 @@ const app = new Hono();
 
 const API_URL = `/${String(process.env.VITE_API_URL)}`;
 
+// Lets token-free CI prove that an alias serves the exact commit it requested.
+// Vercel exposes VERCEL_GIT_COMMIT_SHA during both the build and runtime phases.
+app.use('*', async (c, next) => {
+  await next();
+  const buildSha = process.env.VERCEL_GIT_COMMIT_SHA;
+  if (buildSha !== undefined && buildSha !== '') {
+    c.header('x-vercel-build-sha', buildSha);
+  }
+});
+
 app.use('*', cors());
 app.use(API_URL, compress());
 app.use(API_URL, bodyLimit({ maxSize: 100 * 1024 * 1024 }));
