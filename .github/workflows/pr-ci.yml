@@ -2,13 +2,12 @@ name: PR CI
 
 on:
   pull_request:
-    branches:
-      - main
     types:
       - opened
       - synchronize
       - reopened
       - ready_for_review
+      - edited
 
 concurrency:
   group: pr-${{ github.event.pull_request.number }}
@@ -16,8 +15,249 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  contract:
+    name: Agent PR contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate dependencies, ownership, and overlap
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const current = context.payload.pull_request;
+
+            function parseMetadata(body, label) {
+              const match = (body || '').match(/<!--\s*agent-pr\s*\n([\s\S]*?)-->/i);
+              if (!match) {
+                throw new Error(`${label}: missing <!-- agent-pr ... --> metadata block`);
+              }
+
+              const fields = {};
+              for (const rawLine of match[1].split('\n')) {
+                const line = rawLine.trim();
+                if (!line) continue;
+                const separator = line.indexOf(':');
+                if (separator < 1) {
+                  throw new Error(`${label}: invalid metadata line: ${line}`);
+                }
+                const key = line.slice(0, separator).trim().toLowerCase();
+                const value = line.slice(separator + 1).trim();
+                fields[key] = value;
+              }
+
+              for (const required of ['depends_on', 'stacked_on', 'touch_set']) {
+                if (!fields[required]) {
+                  throw new Error(`${label}: missing ${required}`);
+                }
+              }
+
+              const dependencies =
+                fields.depends_on.toLowerCase() === 'none'
+                  ? []
+                  : fields.depends_on
+                      .split(',')
+                      .map((value) => value.trim())
+                      .filter(Boolean)
+                      .map((value) => {
+                        const parsed = value.match(/^#?(\d+)$/);
+                        if (!parsed) {
+                          throw new Error(`${label}: invalid dependency "${value}"`);
+                        }
+                        return Number(parsed[1]);
+                      });
+
+              const touchSet = fields.touch_set
+                .split(',')
+                .map((value) => value.trim().replace(/^\.\//, '').replace(/\/+$/, ''))
+                .filter(Boolean);
+
+              if (touchSet.length === 0) {
+                throw new Error(`${label}: touch_set must contain at least one path prefix`);
+              }
+
+              for (const prefix of touchSet) {
+                if (
+                  prefix.startsWith('/') ||
+                  prefix === '.' ||
+                  prefix.includes('..') ||
+                  prefix.includes('*') ||
+                  prefix.includes('?')
+                ) {
+                  throw new Error(
+                    `${label}: touch_set entry "${prefix}" must be a safe repository path prefix, not a glob`,
+                  );
+                }
+              }
+
+              const stackedOnRaw = fields.stacked_on.trim();
+              let stackedOn = 'main';
+              if (stackedOnRaw.toLowerCase() !== 'main') {
+                const parsed = stackedOnRaw.match(/^#?(\d+)$/);
+                if (!parsed) {
+                  throw new Error(`${label}: stacked_on must be main or a PR number`);
+                }
+                stackedOn = Number(parsed[1]);
+              }
+
+              return {
+                dependencies: [...new Set(dependencies)],
+                touchSet: [...new Set(touchSet)],
+                stackedOn,
+              };
+            }
+
+            function owns(prefix, file) {
+              return file === prefix || file.startsWith(`${prefix}/`);
+            }
+
+            function overlaps(left, right) {
+              return (
+                left === right ||
+                left.startsWith(`${right}/`) ||
+                right.startsWith(`${left}/`)
+              );
+            }
+
+            const metadata = parseMetadata(current.body, `PR #${current.number}`);
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number: current.number,
+              per_page: 100,
+            });
+
+            const uncovered = files
+              .map((file) => file.filename)
+              .filter(
+                (file) => !metadata.touchSet.some((prefix) => owns(prefix, file)),
+              );
+
+            if (uncovered.length > 0) {
+              throw new Error(
+                [
+                  'Changed files fall outside the declared touch_set:',
+                  ...uncovered.map((file) => `- ${file}`),
+                ].join('\n'),
+              );
+            }
+
+            const dependencyPulls = new Map();
+            for (const number of metadata.dependencies) {
+              const { data: dependency } = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: number,
+              });
+              dependencyPulls.set(number, dependency);
+
+              if (dependency.state === 'closed' && !dependency.merged_at) {
+                throw new Error(
+                  `Dependency PR #${number} was closed without being merged`,
+                );
+              }
+            }
+
+            const openDependencies = [...dependencyPulls.values()].filter(
+              (dependency) => dependency.state === 'open',
+            );
+
+            if (openDependencies.length > 1) {
+              throw new Error(
+                'Only one dependency may remain open at a time. Stack on the immediate prerequisite and wait for earlier dependencies to merge.',
+              );
+            }
+
+            if (openDependencies.length === 1) {
+              const dependency = openDependencies[0];
+              if (metadata.stackedOn !== dependency.number) {
+                throw new Error(
+                  `Open dependency #${dependency.number} requires stacked_on: #${dependency.number}`,
+                );
+              }
+              if (current.base.ref !== dependency.head.ref) {
+                throw new Error(
+                  `PR #${current.number} must target dependency branch "${dependency.head.ref}" while stacked_on is #${dependency.number}; current base is "${current.base.ref}"`,
+                );
+              }
+            } else if (metadata.stackedOn !== 'main') {
+              throw new Error(
+                `stacked_on references #${metadata.stackedOn}, but no declared dependency is still open. Retarget this PR to main and set stacked_on: main.`,
+              );
+            }
+
+            if (metadata.stackedOn === 'main' && current.base.ref !== 'main') {
+              throw new Error(
+                `stacked_on is main, but this PR targets "${current.base.ref}"`,
+              );
+            }
+
+            if (
+              typeof metadata.stackedOn === 'number' &&
+              !metadata.dependencies.includes(metadata.stackedOn)
+            ) {
+              throw new Error(
+                `stacked_on #${metadata.stackedOn} must also appear in depends_on`,
+              );
+            }
+
+            const openPulls = await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+
+            const conflicts = [];
+
+            for (const other of openPulls) {
+              if (other.number === current.number) continue;
+
+              let otherMetadata;
+              try {
+                otherMetadata = parseMetadata(other.body, `PR #${other.number}`);
+              } catch (error) {
+                core.warning(
+                  `Skipping overlap comparison with PR #${other.number}: ${error.message}`,
+                );
+                continue;
+              }
+
+              const dependencyRelated =
+                metadata.dependencies.includes(other.number) ||
+                otherMetadata.dependencies.includes(current.number);
+
+              if (dependencyRelated) continue;
+
+              for (const left of metadata.touchSet) {
+                for (const right of otherMetadata.touchSet) {
+                  if (overlaps(left, right)) {
+                    conflicts.push(
+                      `PR #${other.number}: "${left}" overlaps "${right}"`,
+                    );
+                  }
+                }
+              }
+            }
+
+            if (conflicts.length > 0) {
+              throw new Error(
+                [
+                  'Independent open PRs have overlapping ownership:',
+                  ...conflicts,
+                  'Split the touch sets or declare the dependency and stack the PRs.',
+                ].join('\n'),
+              );
+            }
+
+            core.info(
+              `Agent PR contract valid. Dependencies: ${metadata.dependencies.join(', ') || 'none'}; touch_set: ${metadata.touchSet.join(', ')}`,
+            );
+
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
@@ -25,6 +265,7 @@ jobs:
       lint: ${{ steps.filter.outputs.lint }}
       tests: ${{ steps.filter.outputs.tests }}
       api: ${{ steps.filter.outputs.api }}
+      golden_apps: ${{ steps.filter.outputs.golden_apps }}
     steps:
       - name: Checkout PR head
         uses: actions/checkout@v4
@@ -44,12 +285,13 @@ jobs:
           lint=false
           tests=false
           api=false
+          golden_apps='[]'
 
           while IFS= read -r path; do
             [ -n "$path" ] || continue
 
             case "$path" in
-              src/*|files/*|scripts/*|apps/*|packages/*|package.json|bun.lock|bunfig.toml|tsconfig*.json|vite.config.*|vitest.config.*|eslint.config.*|biome.json*|oxlint.json*|.github/workflows/pr-ci.yml)
+              src/*|files/*|scripts/*|apps/*|packages/*|package.json|bun.lock|bunfig.toml|tsconfig*.json|vite.config.*|vitest.config.*|eslint.config.*|biome.json*|oxlint.json*|.github/*)
                 lint=true
                 ;;
             esac
@@ -65,11 +307,27 @@ jobs:
                 api=true
                 ;;
             esac
+
+            case "$path" in
+              "files/Projects/hono-react/"*)
+                golden_apps="$(printf '%s' "$golden_apps" | jq -c '. + ["hono-react"] | unique')"
+                ;;
+              "files/Projects/template-monorepo/"*)
+                golden_apps="$(printf '%s' "$golden_apps" | jq -c '. + ["template-monorepo"] | unique')"
+                ;;
+              "files/Projects/App Generator - Laravel/"*)
+                golden_apps="$(printf '%s' "$golden_apps" | jq -c '. + ["App Generator - Laravel"] | unique')"
+                ;;
+              "files/Projects/App Generator - Next.js/"*)
+                golden_apps="$(printf '%s' "$golden_apps" | jq -c '. + ["App Generator - Next.js"] | unique')"
+                ;;
+            esac
           done < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
 
           printf 'lint=%s\n' "$lint" >> "$GITHUB_OUTPUT"
           printf 'tests=%s\n' "$tests" >> "$GITHUB_OUTPUT"
           printf 'api=%s\n' "$api" >> "$GITHUB_OUTPUT"
+          printf 'golden_apps=%s\n' "$golden_apps" >> "$GITHUB_OUTPUT"
 
   lint:
     name: Lint
@@ -302,18 +560,79 @@ jobs:
             kill "$(cat server.pid)" 2>/dev/null || true
           fi
 
+  golden:
+    name: Golden (${{ matrix.app }})
+    needs: changes
+    if: needs.changes.outputs.golden_apps != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJson(needs.changes.outputs.golden_apps) }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: scaffolder
+          POSTGRES_PASSWORD: scaffolder123
+          POSTGRES_DB: scaffolder
+        ports:
+          - 15432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+
+      - name: Setup PHP for Laravel
+        if: matrix.app == 'App Generator - Laravel'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+
+      - name: Cache Bun packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run targeted Golden Framework test
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 15432
+          DB_USER: scaffolder
+          DB_PASS: scaffolder123
+        run: ./scripts/test-golden-frameworks "${{ matrix.app }}"
+
   gate:
     name: PR Gate
     if: always()
     needs:
+      - contract
       - changes
       - lint
       - bun
       - vitest
       - api-hello
+      - golden
     runs-on: ubuntu-latest
     steps:
-      - name: Require fast PR checks
+      - name: Require agentic PR checks
         env:
           RESULTS: ${{ toJson(needs) }}
         run: |
