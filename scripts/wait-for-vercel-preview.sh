@@ -37,7 +37,7 @@ github_preview_url() {
 		[.check_runs[]? |
 		 select(.name == "Vercel Preview Comments" and .status == "completed" and .conclusion == "success") |
 		 (.output.summary // "") |
-		 scan("https://[A-Za-z0-9.-]+\\.vercel\\.app")]
+		 scan("[A-Za-z0-9.-]+\\.vercel\\.app")]
 		| first // empty
 	' 2>/dev/null || true
 }
@@ -49,7 +49,11 @@ while :; do
 		exit 1
 	fi
 
-	PREVIEW_URL=$(github_preview_url || true)
+	PREVIEW_HOST=$(github_preview_url || true)
+	PREVIEW_URL=""
+	if [ -n "$PREVIEW_HOST" ]; then
+		PREVIEW_URL="https://${PREVIEW_HOST}"
+	fi
 	if [ -n "$PREVIEW_URL" ]; then
 		SHORT_SHA=$(printf '%s' "$GITHUB_SHA" | cut -c1-12)
 		printf '%s\n' "Found READY Vercel preview for ${SHORT_SHA} from GitHub check output"
