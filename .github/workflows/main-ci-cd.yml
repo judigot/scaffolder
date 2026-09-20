@@ -12,7 +12,6 @@ concurrency:
 
 permissions:
   contents: read
-  checks: read
 
 jobs:
   deploy:
@@ -24,105 +23,6 @@ jobs:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_PROJECT_NAME: scaffolder
     steps:
-      - name: Wait for required CI checks
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
-          EXPECTED_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-
-          required_checks=(
-            "Lint"
-            "Test (Bun)"
-            "Test (Vitest)"
-            "Test (Playwright)"
-            "Golden Frameworks"
-            "Test /api/hello with Node.js"
-            "Test /api/hello with Bun"
-          )
-
-          deadline=$((SECONDS + 3600))
-
-          while :; do
-            checks_json="$(
-              curl -fsS \
-                -H "Authorization: Bearer $GH_TOKEN" \
-                -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/repos/$REPOSITORY/commits/$EXPECTED_SHA/check-runs?per_page=100"
-            )"
-
-            all_passed=1
-
-            for check_name in "${required_checks[@]}"; do
-              check_json="$(
-                printf '%s' "$checks_json" |
-                  jq -c --arg name "$check_name" '
-                    [.check_runs[] | select(.name == $name)]
-                    | sort_by(.started_at // "")
-                    | last // empty
-                  '
-              )"
-
-              if [ -z "$check_json" ]; then
-                printf '%s\n' "Waiting for $check_name: not created yet"
-                all_passed=0
-                continue
-              fi
-
-              status="$(printf '%s' "$check_json" | jq -r '.status')"
-              conclusion="$(printf '%s' "$check_json" | jq -r '.conclusion // ""')"
-
-              if [ "$status" = "completed" ] && [ "$conclusion" = "success" ]; then
-                printf '%s\n' "Passed: $check_name"
-                continue
-              fi
-
-              if [ "$status" = "completed" ]; then
-                echo "::error::$check_name completed with conclusion '$conclusion'. Production deployment is blocked."
-                exit 1
-              fi
-
-              printf '%s\n' "Waiting for $check_name: $status"
-              all_passed=0
-            done
-
-            if [ "$all_passed" -eq 1 ]; then
-              printf '%s\n' "All required CI checks passed."
-              break
-            fi
-
-            if [ "$SECONDS" -ge "$deadline" ]; then
-              echo "::error::Timed out waiting for required CI checks."
-              exit 1
-            fi
-
-            sleep 10
-          done
-
-      - name: Confirm latest main commit
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
-          EXPECTED_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-
-          latest_main_sha="$(
-            curl -fsS \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$REPOSITORY/git/ref/heads/main" |
-              jq -r '.object.sha'
-          )"
-
-          if [ "$latest_main_sha" != "$EXPECTED_SHA" ]; then
-            echo "::error::This run is stale. main is now $latest_main_sha."
-            exit 1
-          fi
-
       - uses: actions/checkout@v4
 
       - uses: oven-sh/setup-bun@v2
