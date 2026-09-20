@@ -45,8 +45,12 @@ jobs:
             ' |
             while read -r run_id; do
               [ -n "$run_id" ] || continue
-              gh api \
+              if ! gh api \
                 --method POST \
                 -H 'Accept: application/vnd.github+json' \
-                "/repos/${REPOSITORY}/actions/runs/${run_id}/cancel"
+                "/repos/${REPOSITORY}/actions/runs/${run_id}/cancel"; then
+                # A run can finish between listing it and issuing the cancel
+                # request. GitHub returns 409 for that benign race.
+                echo "::warning::Run ${run_id} was no longer cancellable."
+              fi
             done
