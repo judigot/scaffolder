@@ -12,8 +12,6 @@ concurrency:
 
 permissions:
   contents: read
-  deployments: read
-  statuses: read
 
 jobs:
   preview-from-wait:
@@ -24,15 +22,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Wait for Vercel preview
+      - name: Find Vercel preview for this commit
         id: deployment
-        uses: vercel/wait-for-deployment-action@0e2b0c5c5cce31f1648108aeec56467187aca037
-        with:
-          environment: preview
+        env:
+          GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+        run: sh scripts/wait-for-vercel-preview.sh
 
       - name: GET /api/hello on the preview URL
         env:
-          PREVIEW_URL: ${{ steps.deployment.outputs.deployment-url }}
+          PREVIEW_URL: ${{ steps.deployment.outputs.deployment_url }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
           VERCEL_PROTECTION_BYPASS_SECRET: ${{ secrets.VERCEL_PROTECTION_BYPASS_SECRET }}
           VERCEL_PROTECTION_BYPASS: ${{ secrets.VERCEL_PROTECTION_BYPASS }}
