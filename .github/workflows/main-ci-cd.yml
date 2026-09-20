@@ -45,11 +45,60 @@ jobs:
     needs: ci
     runs-on: ubuntu-latest
     environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_PROJECT_NAME: scaffolder
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: '1.3.8'
-      - run: bunx vercel deploy --prod --yes --token="$VERCEL_TOKEN"
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Discover Vercel project
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          : "${VERCEL_TOKEN:?VERCEL_TOKEN repository secret is required}"
+
+          teams_json="$(
+            curl -fsS \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              https://api.vercel.com/v2/teams
+          )"
+
+          team_count="$(printf '%s' "$teams_json" | jq '.teams | length')"
+          if [ "$team_count" -ne 1 ]; then
+            echo "::error::Expected VERCEL_TOKEN to access exactly one Vercel team, found $team_count."
+            exit 1
+          fi
+
+          team_id="$(printf '%s' "$teams_json" | jq -r '.teams[0].id')"
+
+          project_json="$(
+            curl -fsS \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v9/projects/$VERCEL_PROJECT_NAME?teamId=$team_id"
+          )"
+
+          project_id="$(printf '%s' "$project_json" | jq -r '.id // empty')"
+          org_id="$(printf '%s' "$project_json" | jq -r '.accountId // empty')"
+
+          if [ -z "$project_id" ] || [ -z "$org_id" ]; then
+            echo "::error::Could not resolve Vercel project '$VERCEL_PROJECT_NAME'."
+            exit 1
+          fi
+
+          printf 'VERCEL_PROJECT_ID=%s\n' "$project_id" >> "$GITHUB_ENV"
+          printf 'VERCEL_ORG_ID=%s\n' "$org_id" >> "$GITHUB_ENV"
+
+          echo "Resolved Vercel project '$VERCEL_PROJECT_NAME'."
+
+      - name: Pull Vercel production settings
+        run: bunx vercel@59.23.2 pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build for Vercel
+        run: bunx vercel@59.23.2 build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy to Vercel production
+        run: bunx vercel@59.23.2 deploy --prebuilt --prod --token="$VERCEL_TOKEN"
