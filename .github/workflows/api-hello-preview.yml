@@ -13,39 +13,35 @@ concurrency:
 permissions:
   contents: read
   checks: read
+  statuses: read
 
 jobs:
   preview-from-wait:
     name: Smoke-test this commit's Vercel Preview
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Test preview resolver behavior
+        run: sh scripts/wait-for-vercel-preview.test.sh
+
+      - name: Test API hello checker
+        run: sh scripts/check-api-hello.test.sh
+
       - name: Find Vercel preview for this commit
         id: deployment
         env:
-          GITHUB_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Observed Git-triggered deployments can take over eleven minutes.
+          VERCEL_PREVIEW_TIMEOUT_SECONDS: 1200
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
         run: sh scripts/wait-for-vercel-preview.sh
 
       - name: GET /api/hello on the preview URL
         env:
           PREVIEW_URL: ${{ steps.deployment.outputs.deployment_url }}
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-          VERCEL_PROTECTION_BYPASS_SECRET: ${{ secrets.VERCEL_PROTECTION_BYPASS_SECRET }}
-          VERCEL_PROTECTION_BYPASS: ${{ secrets.VERCEL_PROTECTION_BYPASS }}
-          VERCEL_BYPASS_SECRET: ${{ secrets.VERCEL_BYPASS_SECRET }}
-          PROTECTION_BYPASS_SECRET: ${{ secrets.PROTECTION_BYPASS_SECRET }}
-          VERCEL_AUTOMATION_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: sh scripts/check-api-hello.sh "$PREVIEW_URL"

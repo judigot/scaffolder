@@ -73,6 +73,7 @@ import sys
 workdir = sys.argv[1]
 port_file = os.path.join(workdir, "port")
 seen_file = os.path.join(workdir, "seen")
+build_sha_file = os.path.join(workdir, "build-sha")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -100,6 +101,13 @@ class Handler(BaseHTTPRequestHandler):
         body = json.dumps({"message": "Hello, world!"}).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
+        try:
+            with open(build_sha_file, encoding="utf-8") as handle:
+                build_sha = handle.read().strip()
+        except FileNotFoundError:
+            build_sha = ""
+        if build_sha:
+            self.send_header("x-vercel-build-sha", build_sha)
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -130,8 +138,10 @@ else
 fi
 
 FAKE_SECRET='local-test-bypass-secret-do-not-log'
+EXPECTED_SHA='0123456789abcdef0123456789abcdef01234567'
+printf '%s\n' "$EXPECTED_SHA" >"$WORKDIR/build-sha"
 _log=$(mktemp)
-if HELLO_ALLOW_HTTP=1 VERCEL_BYPASS_SECRET=$FAKE_SECRET \
+if HELLO_ALLOW_HTTP=1 EXPECTED_SHA=$EXPECTED_SHA VERCEL_BYPASS_SECRET=$FAKE_SECRET \
 	sh "$SCRIPT_DIR/check-api-hello.sh" "$BASE_URL" >"$_log" 2>&1; then
 	expect_fail_contains "alias bypass reaches hello JSON" '"message": "Hello, world!"' "$_log"
 	expect_omits "does not print alias bypass secret" "$FAKE_SECRET" "$_log"
@@ -143,6 +153,23 @@ if HELLO_ALLOW_HTTP=1 VERCEL_BYPASS_SECRET=$FAKE_SECRET \
 else
 	fail "alias bypass smoke test"
 	expect_omits "does not print alias bypass secret on failure" "$FAKE_SECRET" "$_log"
+fi
+
+_log=$(mktemp)
+if HELLO_ALLOW_HTTP=1 EXPECTED_SHA='fedcba9876543210fedcba9876543210fedcba98' \
+	VERCEL_BYPASS_SECRET=$FAKE_SECRET sh "$SCRIPT_DIR/check-api-hello.sh" "$BASE_URL" >"$_log" 2>&1; then
+	fail "mismatched expected SHA exits non-zero"
+else
+	expect_fail_contains "mismatched expected SHA is reported" "Expected x-vercel-build-sha" "$_log"
+fi
+
+rm -f "$WORKDIR/build-sha"
+_log=$(mktemp)
+if HELLO_ALLOW_HTTP=1 EXPECTED_SHA=$EXPECTED_SHA VERCEL_BYPASS_SECRET=$FAKE_SECRET \
+	sh "$SCRIPT_DIR/check-api-hello.sh" "$BASE_URL" >"$_log" 2>&1; then
+	fail "missing build SHA exits non-zero"
+else
+	expect_fail_contains "missing build SHA is reported" "Expected x-vercel-build-sha" "$_log"
 fi
 
 if [ "$FAILED" -ne 0 ]; then
