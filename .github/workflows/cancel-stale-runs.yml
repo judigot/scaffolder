@@ -3,7 +3,7 @@ name: Cancel stale workflow runs
 on:
   push:
     branches:
-      - '**'
+      - main
   workflow_dispatch: {}
 
 permissions:
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Cancel older runs for this branch
+      - name: Cancel older runs for main
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -49,8 +49,6 @@ jobs:
                 --method POST \
                 -H 'Accept: application/vnd.github+json' \
                 "/repos/${REPOSITORY}/actions/runs/${run_id}/cancel"; then
-                # A run can finish between listing it and issuing the cancel
-                # request. GitHub returns 409 for that benign race.
                 echo "::warning::Run ${run_id} was no longer cancellable."
               fi
             done
