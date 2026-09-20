@@ -43,7 +43,6 @@ jobs:
   deploy:
     name: Deploy main to Vercel
     needs: ci
-    if: vars.VERCEL_DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     environment: production
     steps:
