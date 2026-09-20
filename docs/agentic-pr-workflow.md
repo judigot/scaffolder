@@ -70,3 +70,33 @@ The gate includes:
 - targeted Golden Framework testing only when a PR directly changes a golden project surface
 
 Full Playwright and full Golden Framework regression remain on `main` so ordinary feature PRs are not blocked by the slowest suites.
+
+
+## Production safety
+
+Fast PR CI exists to shorten feature iteration, not to weaken production gates.
+
+Every push to `main` runs the canonical `Production CI/CD` workflow. Its
+validation jobs run in parallel, but Vercel production deployment does not begin
+until all of these pass for the same commit:
+
+- lint and template lint;
+- Bun tests;
+- Vitest;
+- Playwright;
+- full Golden Frameworks regression;
+- `/api/hello` under both Node.js and Bun.
+
+The deploy job checks out the exact tested SHA and verifies that SHA is still the
+current `main` tip before the production build and again immediately before
+deployment. A newer `main` commit cancels the stale production pipeline.
+
+After deployment, the workflow verifies production `/api/hello` and its
+`x-vercel-build-sha` against the deployed commit.
+
+Standalone copies of the main validation workflows remain manually runnable for
+diagnostics. They do not separately trigger on `main`; the production workflow
+calls them as reusable workflows so tests are not duplicated.
+
+The legacy EC2 deployment is manual-only. Vercel `Production CI/CD` is the
+single automatic production path from `main`.
