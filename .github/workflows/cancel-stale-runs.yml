@@ -1,0 +1,56 @@
+name: Cancel stale workflow runs
+
+on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch: {}
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: cancel-stale-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cancel:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Cancel older runs for this branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          CURRENT_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh api --paginate --slurp \
+            -H 'Accept: application/vnd.github+json' \
+            "/repos/${REPOSITORY}/actions/runs?branch=${BRANCH}&event=push&per_page=100" |
+            jq -r --arg sha "$CURRENT_SHA" '
+              .[]
+              | .workflow_runs[]?
+              | select(.head_sha != $sha)
+              | select(.status == "queued"
+                   or .status == "in_progress"
+                   or .status == "waiting"
+                   or .status == "pending")
+              | .id
+            ' |
+            while read -r run_id; do
+              [ -n "$run_id" ] || continue
+              if ! gh api \
+                --method POST \
+                -H 'Accept: application/vnd.github+json' \
+                "/repos/${REPOSITORY}/actions/runs/${run_id}/cancel"; then
+                # A run can finish between listing it and issuing the cancel
+                # request. GitHub returns 409 for that benign race.
+                echo "::warning::Run ${run_id} was no longer cancellable."
+              fi
+            done
