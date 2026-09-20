@@ -58,13 +58,13 @@ export function expectEquivalentOpenApiContracts(
   if (a !== b) throw new Error(`OpenAPI contracts differ:\n${a}\n---\n${b}`);
 }
 
-export interface CrudResponse {
+export interface ICrudResponse {
   status: number;
   body: unknown;
 }
 
 /** Normalizes framework error envelopes while retaining their HTTP semantics. */
-export function normalizeClientError(response: CrudResponse): CrudResponse {
+export function normalizeClientError(response: ICrudResponse): ICrudResponse {
   if (response.status < 400) return response;
   const body = response.body;
   if (!isRecord(body)) return { status: response.status, body: {} };

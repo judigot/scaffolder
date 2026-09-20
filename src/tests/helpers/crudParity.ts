@@ -1,10 +1,10 @@
-import { normalizeClientError, type CrudResponse } from './openapiParity.ts';
+import { normalizeClientError, type ICrudResponse } from './openapiParity.ts';
 
-export interface CrudClient {
-  request(method: string, path: string, body?: unknown): Promise<CrudResponse>;
+export interface ICrudClient {
+  request(method: string, path: string, body?: unknown): Promise<ICrudResponse>;
 }
 
-export interface CrudParityOptions {
+export interface ICrudParityOptions {
   collection: string;
   payload: Record<string, unknown>;
   update: Record<string, unknown>;
@@ -21,12 +21,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * framework-specific branches.
  */
 export async function runCrudParitySuite(
-  client: CrudClient,
-  options: CrudParityOptions,
-): Promise<CrudResponse[]> {
+  client: ICrudClient,
+  options: ICrudParityOptions,
+): Promise<ICrudResponse[]> {
   const created = await client.request('POST', options.collection, options.payload);
   const id = options.id ?? (isRecord(created.body) ? created.body.id : undefined);
-  if (id === undefined || id === null) throw new Error('create response did not contain an id');
+  if ((typeof id !== 'string' && typeof id !== 'number') || Number.isNaN(id)) {
+    throw new Error('create response did not contain an id');
+  }
   const item = `${options.collection}/${encodeURIComponent(String(id))}`;
   const responses = [created];
   responses.push(await client.request('GET', item));
@@ -36,10 +38,10 @@ export async function runCrudParitySuite(
   return responses.map(normalizeClientError);
 }
 
-export async function assertCrudErrorParity(
-  left: CrudResponse,
-  right: CrudResponse,
-): Promise<void> {
+export function assertCrudErrorParity(
+  left: ICrudResponse,
+  right: ICrudResponse,
+): void {
   const a = normalizeClientError(left);
   const b = normalizeClientError(right);
   if (a.status !== b.status || JSON.stringify(a.body) !== JSON.stringify(b.body)) {
