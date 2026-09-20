@@ -5,6 +5,10 @@
  */
 export type OpenApiDocument = Record<string, unknown>;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 const metadataKeys = new Set([
   'description',
   'summary',
@@ -17,11 +21,11 @@ function sortValue(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(sortValue).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
   }
-  if (!value || typeof value !== 'object') return value;
+  if (!isRecord(value)) return value;
   const result: Record<string, unknown> = {};
-  for (const key of Object.keys(value as Record<string, unknown>).sort()) {
+  for (const key of Object.keys(value).sort()) {
     if (metadataKeys.has(key)) continue;
-    result[key] = sortValue((value as Record<string, unknown>)[key]);
+    result[key] = sortValue(value[key]);
   }
   return result;
 }
@@ -30,9 +34,9 @@ function sortValue(value: unknown): unknown {
 export function normalizeOpenApiContract(document: OpenApiDocument): unknown {
   const paths = document.paths;
   const projection = { ...document };
-  if (paths && typeof paths === 'object' && !Array.isArray(paths)) {
+  if (isRecord(paths)) {
     projection.paths = Object.fromEntries(
-      Object.entries(paths as Record<string, unknown>)
+      Object.entries(paths)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([path, value]) => [path, sortValue(value)]),
     );
@@ -63,8 +67,8 @@ export interface CrudResponse {
 export function normalizeClientError(response: CrudResponse): CrudResponse {
   if (response.status < 400) return response;
   const body = response.body;
-  if (!body || typeof body !== 'object') return { status: response.status, body: {} };
-  const source = body as Record<string, unknown>;
+  if (!isRecord(body)) return { status: response.status, body: {} };
+  const source = body;
   const message = Array.isArray(source.message)
     ? source.message.join('; ')
     : source.message ?? source.error ?? source.detail;
