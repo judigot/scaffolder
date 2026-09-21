@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
 
       - name: Setup pnpm
         shell: bash
@@ -49,8 +49,8 @@ jobs:
         working-directory: .tools/app-screencast
         shell: bash
         run: |
-          pnpm install --frozen-lockfile
-          pnpm exec playwright install --with-deps chromium
+          pnpm install --ignore-workspace --frozen-lockfile
+          ./node_modules/.bin/playwright install --with-deps chromium
 
       - name: Install Scaffolder showcase scenarios
         shell: bash
