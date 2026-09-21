@@ -1,6 +1,6 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
-import { convertToModelMessages, streamText, type UIMessage } from 'ai';
+import { createUIMessageStreamResponse, convertToModelMessages, streamText, type UIMessage, toUIMessageStream } from 'ai';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { getUserMetadata } from '@/app/services/auth0Service.ts';
@@ -205,12 +205,12 @@ app.post('/', async (c) => {
         temperature: 0.7,
       };
       const result = streamText(optionsWithTemp);
-      return result.toUIMessageStreamResponse();
+      return createUIMessageStreamResponse({\n      stream: toUIMessageStream({ stream: result.stream }),\n    });
     }
 
     const result = streamText(baseOptions);
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({\n      stream: toUIMessageStream({ stream: result.stream }),\n    });
   } catch (error) {
     console.error('Chat API error:', error);
     return c.json({ error: 'Internal server error' }, 500);
