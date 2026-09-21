@@ -12,15 +12,66 @@ before they are treated as golden backends.
 
 ## Jev decision plane
 
-`POST /api/agent-scaffold/resolve` provides bounded recommendations. It uses
-the official `@typesafe-ai/sdk` only when the server has `TYPESAFE_API_KEY`.
-Without that key it uses a deterministic fake provider, so generation and
-tests never depend on Jev or a network call.
+`POST /api/agent-scaffold/resolve` is an authenticated, bounded decision endpoint.
+When `AI_GATEWAY_API_KEY` is configured, it calls Vercel AI Gateway's evaluation
+API with `typesafe-ai/jev`. The key is read server-side only. The provider is
+not allowed to fall back to direct TypeSafe, OpenAI, Anthropic, or another paid
+model when Gateway evaluation fails.
 
-Jev can classify an affected subsystem and recommend an agent/tests. It never
-changes files, executes generators, validates schema, or replaces parity
-tests. The deterministic `POST /api/agent-scaffold` executor remains the only
-code-generation path.
+Jev classifies only the existing allowed Scaffolder subsystems. Code validates the
+choice, then deterministically maps a valid subsystem to the existing recommended
+tests and agent. Confidence is an uncertainty signal, not a correctness guarantee:
+the current review threshold is `0.75`. A choice below that threshold, a missing
+or invalid confidence value, or an invalid subsystem returns
+`status: "needs_review"`, `affectedSubsystem: "unknown"`, no recommended agent,
+and no recommended tests. Invalid model output never silently becomes
+`project-builder`.
+
+Successful responses identify how they were evaluated:
+
+- `provider: "vercel-ai-gateway"`, `evaluationMode: "live"`, and
+  `model: "typesafe-ai/jev"` mean a live Gateway evaluation completed.
+- `provider: "fake"` and `evaluationMode: "fake"` are available only when
+  `SCAFFOLDER_DECISION_PROVIDER=fake` is explicitly selected outside production.
+- Missing Gateway credentials, timeouts, and provider failures return sanitized
+  `503` errors. They never masquerade as fake or live success.
+
+The endpoint keeps its existing agent/Auth0 authentication. Jev does not generate
+code, authorize actions, mutate repositories, bypass validation or CI, or decide
+production readiness. `POST /api/agent-scaffold` and its generation/validation
+path remain deterministic and independent of Jev.
+
+Workflow-history analysis and reusable recipe distillation belong in
+`judigot/agent-workspace`. Scaffolder consumes bounded decisions only; do not add
+a duplicate commit-history classifier or speculative recipe-selection pipeline
+here.
+
+### Live smoke test
+
+Ordinary CI uses mocks/fakes and does not need Gateway credentials or paid calls.
+Before an opt-in live check, confirm current Gateway pricing for
+`typesafe-ai/jev`; pricing and promotions can change.
+
+With a deployed endpoint that has `AI_GATEWAY_API_KEY` configured, run:
+
+```sh
+API="https://YOUR_SCAFFOLDER_HOST/api/agent-scaffold/resolve"
+
+curl --fail-with-body "$API" \
+  -H "Authorization: Bearer $SCAFFOLDER_AGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  --data '{"input":"Migration parity failed because an index is missing.","failure":"migration parity failed"}' \
+  | jq -e '
+      .ok == true and
+      .decision.provider == "vercel-ai-gateway" and
+      .decision.evaluationMode == "live" and
+      .decision.model == "typesafe-ai/jev"
+    '
+```
+
+A `200` alone is not proof that Gateway was used. The smoke test must assert the
+live provider/mode/model fields above. Do not claim live verification unless this
+request actually succeeds against the configured Gateway.
 
 ## Test workflow
 
