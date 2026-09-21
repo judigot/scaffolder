@@ -8,7 +8,10 @@ import {
   createFakeDecisionProvider,
   createJevDecisionProvider,
 } from '@/decision/decisionProvider.ts';
-import {\n  AgentScaffoldResolveRequestSchema,\n  AgentScaffoldResolveResponseSchema,\n} from '@/schemas/agentScaffoldResolve.ts';
+import {
+  AgentScaffoldResolveRequestSchema,
+  AgentScaffoldResolveResponseSchema,
+} from '@/schemas/agentScaffoldResolve.ts';
 import {
   verifyAgentScaffoldAuth,
   type IAgentScaffoldAuthResult,
@@ -112,7 +115,11 @@ export function createAgentScaffoldResolveRouter(
           createGatewayDecisionProvider(apiKey);
       }
 
-      const response = {\n        ok: true as const,\n        decision: await provider.decide(parsed.data),\n      };\n      return c.json(AgentScaffoldResolveResponseSchema.parse(response));
+      const response = {
+        ok: true as const,
+        decision: await provider.decide(parsed.data),
+      };
+      return c.json(AgentScaffoldResolveResponseSchema.parse(response));
     } catch (error: unknown) {
       const providerError =
         error instanceof DecisionProviderError
