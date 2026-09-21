@@ -214,29 +214,25 @@ async function evaluateWithModel(
 export function createJevDecisionProvider(
   options: IJevDecisionProviderOptions,
 ): IDecisionProvider {
-  if (options.evaluate === undefined && options.model === undefined) {
-    throw new DecisionProviderError(
-      'AI_GATEWAY_NOT_CONFIGURED',
-      'AI Gateway is not configured',
-    );
+  let evaluate = options.evaluate;
+  if (evaluate === undefined) {
+    const model = options.model;
+    if (model === undefined) {
+      throw new DecisionProviderError(
+        'AI_GATEWAY_NOT_CONFIGURED',
+        'AI Gateway is not configured',
+      );
+    }
+    evaluate = (request: IDecisionRequest, signal: AbortSignal) =>
+      evaluateWithModel(model, request, signal);
   }
 
   const timeoutMs = options.timeoutMs ?? DECISION_TIMEOUT_MS;
-  const evaluate =
-    options.evaluate ??
-    ((request: IDecisionRequest, signal: AbortSignal) =>
-      evaluateWithModel(
-        options.model as Experimental_EvaluationModel,
-        request,
-        signal,
-      ));
 
   return {
     async decide(request) {
       const controller = new AbortController();
-      let timedOut = false;
       const timeout = setTimeout(() => {
-        timedOut = true;
         controller.abort();
       }, timeoutMs);
 
@@ -264,7 +260,7 @@ export function createJevDecisionProvider(
           model: JEV_GATEWAY_MODEL,
         };
       } catch {
-        if (timedOut) {
+        if (controller.signal.aborted) {
           throw new DecisionProviderError(
             'DECISION_PROVIDER_TIMEOUT',
             'Jev evaluation timed out',
