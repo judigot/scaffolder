@@ -205,12 +205,16 @@ app.post('/', async (c) => {
         temperature: 0.7,
       };
       const result = streamText(optionsWithTemp);
-      return createUIMessageStreamResponse({\n      stream: toUIMessageStream({ stream: result.stream }),\n    });
+      return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
     }
 
     const result = streamText(baseOptions);
 
-    return createUIMessageStreamResponse({\n      stream: toUIMessageStream({ stream: result.stream }),\n    });
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   } catch (error) {
     console.error('Chat API error:', error);
     return c.json({ error: 'Internal server error' }, 500);
