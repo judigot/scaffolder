@@ -641,3 +641,22 @@ jobs:
             printf '%s\n' "$RESULTS" | jq .
             exit 1
           fi
+
+
+  lockfile-refresh:
+    name: Lockfile refresh artifact
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.8'
+      - name: Refresh lockfile
+        run: bun install --lockfile-only
+      - name: Upload lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: refreshed-bun-lock
+          path: bun.lock
