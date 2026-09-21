@@ -1,0 +1,105 @@
+name: Screencast Showcase
+
+on:
+  push:
+    branches:
+      - test/scaffolder-screencast-showcase
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  record-public-sites:
+    name: Record public-site capability demo
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Scaffolder
+        uses: actions/checkout@v4
+
+      - name: Checkout app-screencast
+        uses: actions/checkout@v4
+        with:
+          repository: judigot/app-screencast
+          ref: b0230e2daf69edb976649bb3a5eb2e012736f5b8
+          path: .tools/app-screencast
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.17.1 --activate
+          pnpm --version
+
+      - name: Install media tooling
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y ffmpeg
+
+      - name: Install screencast dependencies
+        working-directory: .tools/app-screencast
+        shell: bash
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+
+      - name: Install Scaffolder showcase scenarios
+        shell: bash
+        run: |
+          cp scripts/screencast-showcase/video-demo-side-by-side.spec.ts \
+            .tools/app-screencast/video-demo-side-by-side.spec.ts
+          cp scripts/screencast-showcase/video-demo-multi-window.spec.ts \
+            .tools/app-screencast/video-demo-multi-window.spec.ts
+          mkdir -p screencast-artifacts
+
+      - name: Record side-by-side showcase
+        working-directory: .tools/app-screencast
+        shell: bash
+        env:
+          EVIDENCE_OUTPUT_PATH: ${{ github.workspace }}/screencast-artifacts/public-sites-side-by-side.mp4
+          EVIDENCE_RECORD_MS: "14000"
+          EVIDENCE_OUTPUT_FPS: "60"
+          EVIDENCE_ZOOM: "1"
+        run: bash record-side-by-side.sh
+
+      - name: Record multi-window showcase
+        working-directory: .tools/app-screencast
+        shell: bash
+        env:
+          EVIDENCE_OUTPUT_PATH: ${{ github.workspace }}/screencast-artifacts/public-sites-multi-window.mp4
+          EVIDENCE_OUTPUT_FPS: "60"
+          EVIDENCE_ZOOM: "1"
+        run: bash record-multi-window-video.sh
+
+      - name: Validate showcase media
+        shell: bash
+        run: |
+          set -euo pipefail
+          for video in screencast-artifacts/*.mp4; do
+            test -s "$video"
+            ffprobe -v error \
+              -select_streams v:0 \
+              -show_entries stream=codec_name,width,height,avg_frame_rate \
+              -show_entries format=duration \
+              -of json \
+              "$video" | tee "${video%.mp4}.ffprobe.json"
+          done
+
+          test "$(find screencast-artifacts -maxdepth 1 -name '*.mp4' | wc -l)" -eq 2
+
+      - name: Upload showcase videos
+        uses: actions/upload-artifact@v4
+        with:
+          name: scaffolder-screencast-showcase
+          path: screencast-artifacts/
+          if-no-files-found: error
+          retention-days: 14
