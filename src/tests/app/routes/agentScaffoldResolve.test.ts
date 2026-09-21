@@ -4,6 +4,7 @@ import type {
   IDecisionProvider,
   IDecisionResult,
 } from '@/decision/decisionProvider.ts';
+import { AgentScaffoldResolveResponseSchema } from '@/schemas/agentScaffoldResolve.ts';
 
 const originalNodeEnv = process.env.NODE_ENV;
 
@@ -127,7 +128,7 @@ describe('POST /agent-scaffold/resolve', () => {
     );
 
     expect(response.status).toBe(200);
-    const body = await response.json();
+    const body = AgentScaffoldResolveResponseSchema.parse(await response.json());
     expect(body).toMatchObject({
       ok: true,
       decision: {
