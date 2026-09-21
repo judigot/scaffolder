@@ -8,7 +8,7 @@ import {
   createFakeDecisionProvider,
   createJevDecisionProvider,
 } from '@/decision/decisionProvider.ts';
-import { AgentScaffoldResolveRequestSchema } from '@/schemas/agentScaffoldResolve.ts';
+import {\n  AgentScaffoldResolveRequestSchema,\n  AgentScaffoldResolveResponseSchema,\n} from '@/schemas/agentScaffoldResolve.ts';
 import {
   verifyAgentScaffoldAuth,
   type IAgentScaffoldAuthResult,
@@ -112,7 +112,7 @@ export function createAgentScaffoldResolveRouter(
           createGatewayDecisionProvider(apiKey);
       }
 
-      return c.json({ ok: true, decision: await provider.decide(parsed.data) });
+      const response = {\n        ok: true as const,\n        decision: await provider.decide(parsed.data),\n      };\n      return c.json(AgentScaffoldResolveResponseSchema.parse(response));
     } catch (error: unknown) {
       const providerError =
         error instanceof DecisionProviderError
@@ -121,16 +121,14 @@ export function createAgentScaffoldResolveRouter(
               'DECISION_PROVIDER_UNAVAILABLE',
               'Jev evaluation provider is unavailable',
             );
-      return c.json(
-        {
-          ok: false,
-          error: {
-            code: providerError.code,
-            message: providerError.message,
-          },
+      const response = AgentScaffoldResolveResponseSchema.parse({
+        ok: false,
+        error: {
+          code: providerError.code,
+          message: providerError.message,
         },
-        503,
-      );
+      });
+      return c.json(response, 503);
     }
   });
 
