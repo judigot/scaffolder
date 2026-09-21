@@ -337,13 +337,17 @@ app.post('/chat', async (c) => {
         temperature: 0.7,
       };
       const result = streamText(optionsWithTemp);
-      return createUIMessageStreamResponse({\n      stream: toUIMessageStream({ stream: result.stream }),\n    });
+      return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
     }
 
     const result = streamText(baseOptions);
 
     console.error('[RepoAgent] Returning stream response...');
-    return createUIMessageStreamResponse({\n      stream: toUIMessageStream({ stream: result.stream }),\n    });
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     const errorStack = err instanceof Error ? err.stack : undefined;
