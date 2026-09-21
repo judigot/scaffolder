@@ -52,22 +52,21 @@ Ordinary CI uses mocks/fakes and does not need Gateway credentials or paid calls
 Before an opt-in live check, confirm current Gateway pricing for
 `typesafe-ai/jev`; pricing and promotions can change.
 
-With a deployed endpoint that has `AI_GATEWAY_API_KEY` configured, run:
+With a deployed endpoint that has `AI_GATEWAY_API_KEY` configured, run the
+opt-in authenticated smoke test:
 
 ```sh
-API="https://YOUR_SCAFFOLDER_HOST/api/agent-scaffold/resolve"
-
-curl --fail-with-body "$API" \
-  -H "Authorization: Bearer $SCAFFOLDER_AGENT_API_KEY" \
-  -H "Content-Type: application/json" \
-  --data '{"input":"Migration parity failed because an index is missing.","failure":"migration parity failed"}' \
-  | jq -e '
-      .ok == true and
-      .decision.provider == "vercel-ai-gateway" and
-      .decision.evaluationMode == "live" and
-      .decision.model == "typesafe-ai/jev"
-    '
+export RUN_LIVE_JEV_SMOKE=1
+export SCAFFOLDER_RESOLVE_URL="https://YOUR_SCAFFOLDER_HOST/api/agent-scaffold/resolve"
+export SCAFFOLDER_AGENT_API_KEY="YOUR_AGENT_API_KEY"
+./scripts/smoke-agent-scaffold-resolve.sh
 ```
+
+The script sends one bounded classification request and asserts
+`provider: "vercel-ai-gateway"`, `evaluationMode: "live"`, and
+`model: "typesafe-ai/jev"`. It refuses to run unless
+`RUN_LIVE_JEV_SMOKE=1` is set so the operator has an explicit checkpoint to
+review current Gateway pricing first.
 
 A `200` alone is not proof that Gateway was used. The smoke test must assert the
 live provider/mode/model fields above. Do not claim live verification unless this
