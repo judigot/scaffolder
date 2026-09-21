@@ -1,6 +1,10 @@
+import { createGateway } from '@ai-sdk/gateway';
 import { Hono } from 'hono';
-import { redactAgentToken } from '@/app/services/agentGitHubToken.ts';
 import {
+  DecisionProviderError,
+  type DecisionProviderMode,
+  type IDecisionProvider,
+  JEV_GATEWAY_MODEL,
   createFakeDecisionProvider,
   createJevDecisionProvider,
 } from '@/decision/decisionProvider.ts';
@@ -14,10 +18,39 @@ type IAuthVerifier = (
   authorizationHeader: string | undefined,
 ) => Promise<IAgentScaffoldAuthResult>;
 
-export function createAgentScaffoldResolveRouter(dependencies: {
+interface IAgentScaffoldResolveDependencies {
   verifyAuthToken?: IAuthVerifier;
   agentApiKey?: string | null;
-} = {}): Hono {
+  aiGatewayApiKey?: string | null;
+  decisionProviderMode?: DecisionProviderMode;
+  createGatewayProvider?: (apiKey: string) => IDecisionProvider;
+}
+
+function getOptionalSecret(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() !== '' ? value : null;
+}
+
+function getDecisionProviderMode(
+  override: DecisionProviderMode | undefined,
+): DecisionProviderMode {
+  if (override !== undefined) {
+    return override;
+  }
+  return process.env.SCAFFOLDER_DECISION_PROVIDER === 'fake'
+    ? 'fake'
+    : 'gateway';
+}
+
+function createGatewayDecisionProvider(apiKey: string): IDecisionProvider {
+  const gateway = createGateway({ apiKey });
+  return createJevDecisionProvider({
+    model: gateway.evaluationModel(JEV_GATEWAY_MODEL),
+  });
+}
+
+export function createAgentScaffoldResolveRouter(
+  dependencies: IAgentScaffoldResolveDependencies = {},
+): Hono {
   const verifyAuthToken =
     dependencies.verifyAuthToken ??
     ((authorizationHeader: string | undefined) =>
@@ -28,7 +61,9 @@ export function createAgentScaffoldResolveRouter(dependencies: {
 
   app.post('/', async (c) => {
     const authResult = await verifyAuthToken(c.req.header('authorization'));
-    if (!authResult.ok) {return c.json(authResult.body, authResult.status);}
+    if (!authResult.ok) {
+      return c.json(authResult.body, authResult.status);
+    }
 
     let body: unknown;
     try {
@@ -51,15 +86,51 @@ export function createAgentScaffoldResolveRouter(dependencies: {
     }
 
     try {
-      const provider =
-        typeof process.env.TYPESAFE_API_KEY === 'string' &&
-        process.env.TYPESAFE_API_KEY.trim() !== ''
-        ? createJevDecisionProvider()
-        : createFakeDecisionProvider();
+      const mode = getDecisionProviderMode(dependencies.decisionProviderMode);
+      let provider: IDecisionProvider;
+
+      if (mode === 'fake') {
+        if (process.env.NODE_ENV === 'production') {
+          throw new DecisionProviderError(
+            'FAKE_DECISION_PROVIDER_NOT_ALLOWED',
+            'Fake decision evaluation is not allowed in production',
+          );
+        }
+        provider = createFakeDecisionProvider();
+      } else {
+        const apiKey = getOptionalSecret(
+          dependencies.aiGatewayApiKey ?? process.env.AI_GATEWAY_API_KEY,
+        );
+        if (apiKey === null) {
+          throw new DecisionProviderError(
+            'AI_GATEWAY_NOT_CONFIGURED',
+            'AI Gateway is not configured',
+          );
+        }
+        provider =
+          dependencies.createGatewayProvider?.(apiKey) ??
+          createGatewayDecisionProvider(apiKey);
+      }
+
       return c.json({ ok: true, decision: await provider.decide(parsed.data) });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Decision failed';
-      return c.json({ ok: false, error: redactAgentToken(message, undefined) }, 503);
+      const providerError =
+        error instanceof DecisionProviderError
+          ? error
+          : new DecisionProviderError(
+              'DECISION_PROVIDER_UNAVAILABLE',
+              'Jev evaluation provider is unavailable',
+            );
+      return c.json(
+        {
+          ok: false,
+          error: {
+            code: providerError.code,
+            message: providerError.message,
+          },
+        },
+        503,
+      );
     }
   });
 
