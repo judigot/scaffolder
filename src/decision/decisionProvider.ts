@@ -120,6 +120,33 @@ function isConfidence(value: unknown): value is number {
   );
 }
 
+function getTypeSafeConfidence(providerMetadata: unknown): unknown {
+  if (
+    typeof providerMetadata !== 'object' ||
+    providerMetadata === null ||
+    !('typesafe' in providerMetadata)
+  ) {
+    return undefined;
+  }
+  const typesafe = providerMetadata.typesafe;
+  if (
+    typeof typesafe !== 'object' ||
+    typesafe === null ||
+    !('confidence' in typesafe)
+  ) {
+    return undefined;
+  }
+  const confidence = typesafe.confidence;
+  if (
+    typeof confidence !== 'object' ||
+    confidence === null ||
+    !('affectedSubsystem' in confidence)
+  ) {
+    return undefined;
+  }
+  return confidence.affectedSubsystem;
+}
+
 function recommendationFor(subsystem: DecisionSubsystem): Pick<
   IDecisionResult,
   'recommendedAgent' | 'needsFrontierModel'
@@ -178,12 +205,9 @@ async function evaluateWithModel(
     abortSignal: signal,
   });
   const answer = result.answers.affectedSubsystem;
-  const confidence =
-    result.providerMetadata?.typesafe?.confidence?.affectedSubsystem;
-
   return {
     choice: answer.choice,
-    confidence,
+    confidence: getTypeSafeConfidence(result.providerMetadata),
   };
 }
 
