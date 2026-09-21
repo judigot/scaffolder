@@ -104,7 +104,9 @@ app.post('/chat', async (c) => {
     });
 
     console.error('[Agent] Returning stream response...');
-    return createUIMessageStreamResponse({\n      stream: toUIMessageStream({ stream: result.stream }),\n    });
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   } catch (err: unknown) {
     await disconnect(client);
     const errorMessage = err instanceof Error ? err.message : String(err);
