@@ -1,6 +1,6 @@
 import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, stepCountIs, streamText } from 'ai';
+import { createUIMessageStreamResponse, convertToModelMessages, stepCountIs, streamText, toUIMessageStream } from 'ai';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import {
@@ -337,13 +337,17 @@ app.post('/chat', async (c) => {
         temperature: 0.7,
       };
       const result = streamText(optionsWithTemp);
-      return result.toUIMessageStreamResponse();
+      return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
     }
 
     const result = streamText(baseOptions);
 
     console.error('[RepoAgent] Returning stream response...');
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
     const errorStack = err instanceof Error ? err.stack : undefined;

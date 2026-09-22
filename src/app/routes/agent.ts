@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { convertToModelMessages, stepCountIs, streamText } from 'ai';
+import { createUIMessageStreamResponse, convertToModelMessages, stepCountIs, streamText, toUIMessageStream } from 'ai';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { createRemoteAgentTools } from '@/app/services/remoteAgentTools.ts';
@@ -104,7 +104,9 @@ app.post('/chat', async (c) => {
     });
 
     console.error('[Agent] Returning stream response...');
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   } catch (err: unknown) {
     await disconnect(client);
     const errorMessage = err instanceof Error ? err.message : String(err);

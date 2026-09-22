@@ -1,4 +1,5 @@
-import { choice, TypeSafeClient } from '@typesafe-ai/sdk';
+import type { Experimental_EvaluationModel } from 'ai';
+import { experimental_evaluate } from 'ai';
 
 export const DECISION_SUBSYSTEMS = [
   'schema-info',
@@ -13,7 +14,17 @@ export const DECISION_SUBSYSTEMS = [
   'agent-scaffold',
 ] as const;
 
+export const DECISION_MIN_CONFIDENCE = 0.75;
+export const DECISION_TIMEOUT_MS = 5_000;
+export const JEV_GATEWAY_MODEL = 'typesafe-ai/jev';
+
 export type DecisionSubsystem = (typeof DECISION_SUBSYSTEMS)[number];
+export type DecisionProviderMode = 'gateway' | 'fake';
+
+type DecisionAgent =
+  | 'project-builder'
+  | 'project-generator'
+  | 'golden-parity-engineer';
 
 export interface IDecisionRequest {
   input: string;
@@ -22,29 +33,63 @@ export interface IDecisionRequest {
 }
 
 export interface IDecisionResult {
-  affectedSubsystem: DecisionSubsystem;
+  status: 'resolved' | 'needs_review';
+  affectedSubsystem: DecisionSubsystem | 'unknown';
   recommendedTests: string[];
-  recommendedAgent: 'project-builder' | 'project-generator' | 'golden-parity-engineer';
+  recommendedAgent: DecisionAgent | null;
   needsFrontierModel: boolean;
   confidence?: number;
-  provider: 'jev' | 'fake';
+  provider: 'vercel-ai-gateway' | 'fake';
+  evaluationMode: 'live' | 'fake';
+  model: typeof JEV_GATEWAY_MODEL | null;
+  reviewReason?: 'uncertain' | 'invalid_response';
 }
 
 export interface IDecisionProvider {
   decide(request: IDecisionRequest): Promise<IDecisionResult>;
 }
 
-const subsystemCriteria: Record<DecisionSubsystem, null> = {
-  'schema-info': null,
-  'project-builder': null,
-  core: null,
-  project: null,
-  'golden-test': null,
-  auth: null,
-  migration: null,
-  openapi: null,
-  frontend: null,
-  'agent-scaffold': null,
+export type DecisionProviderErrorCode =
+  | 'AI_GATEWAY_NOT_CONFIGURED'
+  | 'DECISION_PROVIDER_TIMEOUT'
+  | 'DECISION_PROVIDER_UNAVAILABLE'
+  | 'FAKE_DECISION_PROVIDER_NOT_ALLOWED';
+
+export class DecisionProviderError extends Error {
+  constructor(
+    readonly code: DecisionProviderErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'DecisionProviderError';
+  }
+}
+
+interface IJevEvaluation {
+  choice: unknown;
+  confidence: unknown;
+}
+
+interface IJevDecisionProviderOptions {
+  model?: Experimental_EvaluationModel;
+  timeoutMs?: number;
+  evaluate?: (
+    request: IDecisionRequest,
+    signal: AbortSignal,
+  ) => Promise<IJevEvaluation>;
+}
+
+const subsystemCriteria: Record<DecisionSubsystem, string | null> = {
+  'schema-info': 'schemaInfo parsing, normalization, or contract input',
+  'project-builder': 'project generation orchestration or generator implementation',
+  core: 'shared Core template or reusable scaffold foundation',
+  project: 'project-specific generated application behavior',
+  'golden-test': 'golden application fixtures or cross-framework parity coverage',
+  auth: 'authentication or authorization parity',
+  migration: 'database migration or schema parity',
+  openapi: 'OpenAPI contract or API surface parity',
+  frontend: 'shared frontend behavior or frontend end-to-end parity',
+  'agent-scaffold': 'agent-scaffold API, publication, or resolve endpoint behavior',
 };
 
 const decisionSubsystemSet = new Set<string>(DECISION_SUBSYSTEMS);
@@ -63,10 +108,43 @@ const testsForSubsystem: Record<DecisionSubsystem, string[]> = {
 };
 
 function isDecisionSubsystem(value: unknown): value is DecisionSubsystem {
+  return typeof value === 'string' && decisionSubsystemSet.has(value);
+}
+
+function isConfidence(value: unknown): value is number {
   return (
-    typeof value === 'string' &&
-    decisionSubsystemSet.has(value)
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
+    value >= 0 &&
+    value <= 1
   );
+}
+
+function getTypeSafeConfidence(providerMetadata: unknown): unknown {
+  if (
+    typeof providerMetadata !== 'object' ||
+    providerMetadata === null ||
+    !('typesafe' in providerMetadata)
+  ) {
+    return undefined;
+  }
+  const typesafe = providerMetadata.typesafe;
+  if (
+    typeof typesafe !== 'object' ||
+    typesafe === null ||
+    !('confidence' in typesafe)
+  ) {
+    return undefined;
+  }
+  const confidence = typesafe.confidence;
+  if (
+    typeof confidence !== 'object' ||
+    confidence === null ||
+    !('affectedSubsystem' in confidence)
+  ) {
+    return undefined;
+  }
+  return confidence.affectedSubsystem;
 }
 
 function recommendationFor(subsystem: DecisionSubsystem): Pick<
@@ -77,41 +155,124 @@ function recommendationFor(subsystem: DecisionSubsystem): Pick<
     return { recommendedAgent: 'project-generator', needsFrontierModel: true };
   }
   if (subsystem === 'golden-test' || subsystem === 'migration') {
-    return { recommendedAgent: 'golden-parity-engineer', needsFrontierModel: false };
+    return {
+      recommendedAgent: 'golden-parity-engineer',
+      needsFrontierModel: false,
+    };
   }
   return { recommendedAgent: 'project-builder', needsFrontierModel: false };
 }
 
+function needsReview(
+  reason: NonNullable<IDecisionResult['reviewReason']>,
+  confidence?: number,
+): IDecisionResult {
+  return {
+    status: 'needs_review',
+    affectedSubsystem: 'unknown',
+    recommendedTests: [],
+    recommendedAgent: null,
+    needsFrontierModel: false,
+    ...(confidence === undefined ? {} : { confidence }),
+    provider: 'vercel-ai-gateway',
+    evaluationMode: 'live',
+    model: JEV_GATEWAY_MODEL,
+    reviewReason: reason,
+  };
+}
+
+async function evaluateWithModel(
+  model: Experimental_EvaluationModel,
+  request: IDecisionRequest,
+  signal: AbortSignal,
+): Promise<IJevEvaluation> {
+  const result = await experimental_evaluate({
+    model,
+    state: {
+      request: request.input,
+      schemaInfoPresent: request.schemaInfoPresent ?? false,
+      failure: request.failure ?? null,
+    },
+    questions: {
+      affectedSubsystem: {
+        type: 'choice',
+        instructions:
+          'Which Scaffolder subsystem is primarily affected by this bounded development request or failure?',
+        criteria: subsystemCriteria,
+      },
+    },
+    maxRetries: 0,
+    abortSignal: signal,
+  });
+  const answer = result.answers.affectedSubsystem;
+  return {
+    choice: answer.choice,
+    confidence: getTypeSafeConfidence(result.providerMetadata),
+  };
+}
+
 export function createJevDecisionProvider(
-  client: TypeSafeClient = new TypeSafeClient(),
+  options: IJevDecisionProviderOptions,
 ): IDecisionProvider {
+  let evaluate = options.evaluate;
+  if (evaluate === undefined) {
+    const model = options.model;
+    if (model === undefined) {
+      throw new DecisionProviderError(
+        'AI_GATEWAY_NOT_CONFIGURED',
+        'AI Gateway is not configured',
+      );
+    }
+    evaluate = (request: IDecisionRequest, signal: AbortSignal) =>
+      evaluateWithModel(model, request, signal);
+  }
+
+  const timeoutMs = options.timeoutMs ?? DECISION_TIMEOUT_MS;
+
   return {
     async decide(request) {
-      const response = await client.systemOne({
-        state: {
-          request: request.input,
-          schemaInfoPresent: request.schemaInfoPresent ?? false,
-          failure: request.failure ?? null,
-        },
-        questions: {
-          affectedSubsystem: choice(
-            'Which Scaffolder subsystem is primarily affected?',
-            subsystemCriteria,
-          ),
-        },
-      });
-      const answer = response.answers.affectedSubsystem;
-      const subsystem = isDecisionSubsystem(answer.choice)
-        ? answer.choice
-        : 'project-builder';
-      const recommendation = recommendationFor(subsystem);
-      return {
-        affectedSubsystem: subsystem,
-        recommendedTests: testsForSubsystem[subsystem],
-        ...recommendation,
-        confidence: answer.confidence,
-        provider: 'jev',
-      };
+      const controller = new AbortController();
+      const timeout = setTimeout(() => {
+        controller.abort();
+      }, timeoutMs);
+
+      try {
+        const evaluation = await evaluate(request, controller.signal);
+        if (
+          !isDecisionSubsystem(evaluation.choice) ||
+          !isConfidence(evaluation.confidence)
+        ) {
+          return needsReview('invalid_response');
+        }
+        if (evaluation.confidence < DECISION_MIN_CONFIDENCE) {
+          return needsReview('uncertain', evaluation.confidence);
+        }
+
+        const subsystem = evaluation.choice;
+        return {
+          status: 'resolved',
+          affectedSubsystem: subsystem,
+          recommendedTests: testsForSubsystem[subsystem],
+          ...recommendationFor(subsystem),
+          confidence: evaluation.confidence,
+          provider: 'vercel-ai-gateway',
+          evaluationMode: 'live',
+          model: JEV_GATEWAY_MODEL,
+        };
+      } catch {
+        if (controller.signal.aborted) {
+          throw new DecisionProviderError(
+            'DECISION_PROVIDER_TIMEOUT',
+            'Jev evaluation timed out',
+          );
+        }
+        throw new DecisionProviderError(
+          'DECISION_PROVIDER_UNAVAILABLE',
+          'Jev evaluation provider is unavailable',
+        );
+      } finally {
+        clearTimeout(timeout);
+      }
     },
   };
 }
@@ -130,10 +291,13 @@ export function createFakeDecisionProvider(): IDecisionProvider {
               ? 'auth'
               : 'project-builder';
       return Promise.resolve({
+        status: 'resolved',
         affectedSubsystem: subsystem,
         recommendedTests: testsForSubsystem[subsystem],
         ...recommendationFor(subsystem),
         provider: 'fake',
+        evaluationMode: 'fake',
+        model: null,
       });
     },
   };
