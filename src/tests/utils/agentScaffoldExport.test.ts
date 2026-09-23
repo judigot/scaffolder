@@ -175,12 +175,21 @@ describe('agent scaffold exports', () => {
     ).toThrow(/byte export limit/);
   });
 
-  it('rejects traversal and file-directory collisions', () => {
+  it('rejects unsafe, normalized duplicate and file-directory collisions', () => {
+    for (const unsafeName of ['../escape', '/absolute', 'C:\\absolute']) {
+      expect(() =>
+        createAgentScaffoldManifest([
+          { type: 'file', name: unsafeName, content: 'x' },
+        ]),
+      ).toThrow(AgentScaffoldExportError);
+    }
+
     expect(() =>
       createAgentScaffoldManifest([
-        { type: 'file', name: '../escape', content: 'x' },
+        { type: 'file', name: 'dir\\\\file.txt', content: 'one' },
+        { type: 'file', name: 'dir/file.txt', content: 'two' },
       ]),
-    ).toThrow(AgentScaffoldExportError);
+    ).toThrow(/collision/);
 
     expect(() =>
       createAgentScaffoldManifest([
@@ -188,5 +197,24 @@ describe('agent scaffold exports', () => {
         { type: 'folder', name: 'same', children: [] },
       ]),
     ).toThrow(/collision/);
+
+    expect(() =>
+      createAgentScaffoldManifest([
+        { type: 'file', name: 'same/child.txt', content: 'x' },
+        { type: 'folder', name: 'same', children: [] },
+      ]),
+    ).toThrow(/collision/);
+  });
+
+  it('requires exactly one shell destination argument', () => {
+    const root = mkdtempSync(join(tmpdir(), 'agent-scaffold-'));
+    const script = join(root, 'scaffold.sh');
+    writeFileSync(
+      script,
+      createAgentScaffoldShell(createAgentScaffoldManifest(fixture())),
+    );
+
+    expect(spawnSync('sh', [script]).status).not.toBe(0);
+    expect(spawnSync('sh', [script, 'one', 'two']).status).not.toBe(0);
   });
 });
