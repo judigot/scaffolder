@@ -28,7 +28,7 @@ curl --fail-with-body \
   -d '{
     "project":"hono-react",
     "target_repo":"judigot/example",
-    "schemaInfo":"<@@SCHEMA@@>\\n@users:id:u#pk,email:s\\n<@@/SCHEMA@@>"
+    "schemaInfo":"<@@SCHEMA@@>\n@user:id:u#pk,email:s!u,createdAt:D,updatedAt:D|>session\n@session:id:s#pk,userId:u>user,expiresAt:D|<user\n<@@/SCHEMA@@>"
   }' \
   "$SCAFFOLDER_URL/api/agent-scaffold"
 ```
@@ -48,7 +48,7 @@ status=$(
     -d '{
       "output":"zip",
       "project":"hono-react",
-      "schemaInfo":"<@@SCHEMA@@>\\n@users:id:u#pk,email:s\\n<@@/SCHEMA@@>"
+      "schemaInfo":"<@@SCHEMA@@>\n@user:id:u#pk,email:s!u,createdAt:D,updatedAt:D|>session\n@session:id:s#pk,userId:u>user,expiresAt:D|<user\n<@@/SCHEMA@@>"
     }' \
     "$SCAFFOLDER_URL/api/agent-scaffold"
 )
@@ -71,7 +71,7 @@ status=$(
     -d '{
       "output":"sh",
       "project":"hono-react",
-      "schemaInfo":"<@@SCHEMA@@>\\n@users:id:u#pk,email:s\\n<@@/SCHEMA@@>"
+      "schemaInfo":"<@@SCHEMA@@>\n@user:id:u#pk,email:s!u,createdAt:D,updatedAt:D|>session\n@session:id:s#pk,userId:u>user,expiresAt:D|<user\n<@@/SCHEMA@@>"
     }' \
     "$SCAFFOLDER_URL/api/agent-scaffold"
 )
