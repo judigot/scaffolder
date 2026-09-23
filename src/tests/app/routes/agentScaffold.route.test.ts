@@ -120,14 +120,16 @@ describe('agent scaffold API', () => {
   it('POST / returns zip export as an attachment', async () => {
     const app = createAgentScaffoldRouter({
       agentApiKey: 'agent-secret',
-      scaffoldArtifact: () =>
-        Promise.resolve({
+      scaffoldArtifact: (request) => {
+        expect(request.files).toEqual(['src/**', 'package.json']);
+        return Promise.resolve({
           body: new Uint8Array([80, 75, 3, 4]),
           contentType: 'application/zip',
           filename: 'scaffold.zip',
           projectName: 'hono-react',
           tables: ['users'],
-        }),
+        });
+      },
     });
 
     const response = await app.request('http://localhost/', {
@@ -138,6 +140,7 @@ describe('agent scaffold API', () => {
       },
       body: JSON.stringify({
         output: 'zip',
+        files: ['src/**', 'package.json'],
         schemaInfo: [
           {
             tableName: 'users',
@@ -163,6 +166,51 @@ describe('agent scaffold API', () => {
     expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([
       80, 75, 3, 4,
     ]);
+  });
+
+  it('POST / rejects files for github_pr with an actionable path', async () => {
+    const app = createAgentScaffoldRouter({
+      agentApiKey: 'agent-secret',
+    });
+
+    const response = await app.request('http://localhost/', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer agent-secret',
+      },
+      body: JSON.stringify({
+        output: 'github_pr',
+        files: ['src/**'],
+        schemaInfo: [
+          {
+            tableName: 'users',
+            columnsInfo: [
+              {
+                column_name: 'id',
+                data_type: 'number',
+                is_nullable: 'NO',
+                primary_key: true,
+              },
+            ],
+          },
+        ],
+        project: 'hono-react',
+        target_repo: 'judigot/bookingwars',
+      }),
+    });
+
+    const payload: unknown = await response.json();
+    expect(response.status).toBe(400);
+    expect(payload).toMatchObject({
+      error: 'Invalid request body',
+      details: [
+        expect.objectContaining({
+          path: 'files',
+          message: 'files is only supported for zip and sh output',
+        }),
+      ],
+    });
   });
 
   it('POST / requires auth when targeting an existing pull request', async () => {
