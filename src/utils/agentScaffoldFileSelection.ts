@@ -120,13 +120,22 @@ export function selectAgentScaffoldManifest(
     const recursivePrefix = selector.endsWith('/**')
       ? selector.slice(0, -3)
       : undefined;
-    const matches = (path: string): boolean =>
+    const matchesFile = (path: string): boolean => {
+      if (selector === '*') return true;
+      if (!pathMatchesGlob(path, selector)) return false;
+      return (
+        recursivePrefix === undefined ||
+        !pathMatchesGlob(path, recursivePrefix)
+      );
+    };
+    const matchesDirectory = (path: string): boolean =>
       selector === '*' ||
       pathMatchesGlob(path, selector) ||
-      (recursivePrefix !== undefined && pathMatchesGlob(path, recursivePrefix));
+      (recursivePrefix !== undefined &&
+        pathMatchesGlob(path, recursivePrefix));
 
     for (const file of manifest.files) {
-      if (!matches(file.path)) continue;
+      if (!matchesFile(file.path)) continue;
       matched = true;
       selectedFiles.add(file.path);
       addParentDirectories(
@@ -137,7 +146,7 @@ export function selectAgentScaffoldManifest(
     }
 
     for (const directory of manifest.directories) {
-      if (!matches(directory)) continue;
+      if (!matchesDirectory(directory)) continue;
       matched = true;
       selectedDirectories.add(directory);
       addParentDirectories(
