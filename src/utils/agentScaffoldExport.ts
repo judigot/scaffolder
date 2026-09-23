@@ -121,6 +121,15 @@ export function createAgentScaffoldManifest(
         );
       }
     }
+    const descendantPrefix = `${normalized}/`;
+    for (const claimedPath of occupied.keys()) {
+      if (claimedPath.startsWith(descendantPrefix)) {
+        throw new AgentScaffoldExportError(
+          `Generated path collision between ${normalized} and ${claimedPath}.`,
+          'INVALID_EXPORT_PATH',
+        );
+      }
+    }
     occupied.set(normalized, kind);
     return normalized;
   };
