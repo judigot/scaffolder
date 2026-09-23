@@ -216,7 +216,7 @@ export function agentScaffoldManifestToStructure(
       type: 'file',
       content: file.isBinary
         ? bytesToBase64(file.bytes)
-        : new TextDecoder().decode(file.bytes),
+        : new TextDecoder('utf-8', { ignoreBOM: true }).decode(file.bytes),
       isBinary: file.isBinary || undefined,
     };
     if (file.mode === 0o755) Reflect.set(outputFile, 'mode', 0o755);
