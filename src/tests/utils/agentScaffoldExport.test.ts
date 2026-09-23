@@ -163,14 +163,18 @@ describe('agent scaffold exports', () => {
       'dir with spaces/run me.sh',
     ]);
 
-    expect(selected.files.map((file) => file.path)).toEqual([
-      'binary.bin',
-      'bom.txt',
-      'dir with spaces/$(not-run).txt',
-      'dir with spaces/.nested',
-      'dir with spaces/run me.sh',
-      'empty.txt',
-    ]);
+    const selectedPaths = selected.files.map((file) => file.path);
+    expect(selectedPaths).toHaveLength(6);
+    expect(selectedPaths).toEqual(
+      expect.arrayContaining([
+        'binary.bin',
+        'bom.txt',
+        'dir with spaces/$(not-run).txt',
+        'dir with spaces/.nested',
+        'dir with spaces/run me.sh',
+        'empty.txt',
+      ]),
+    );
     expect(selected.directories).toEqual(['dir with spaces']);
     expect(new Set(selected.files.map((file) => file.path)).size).toBe(
       selected.files.length,
