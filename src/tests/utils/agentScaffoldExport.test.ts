@@ -230,6 +230,7 @@ describe('agent scaffold exports', () => {
             ],
           },
           { type: 'folder', name: 'api', children: [] },
+          { type: 'file', name: 'README.md', content: '# apps\n' },
         ],
       },
     ]);
@@ -260,6 +261,7 @@ describe('agent scaffold exports', () => {
       expect(readFileSync(join(destination, 'apps/web/index.ts'), 'utf8')).toBe(
         'export {};\n',
       );
+      expect(existsSync(join(destination, 'apps/README.md'))).toBe(false);
     }
   });
 
@@ -276,6 +278,61 @@ describe('agent scaffold exports', () => {
 
     expect(selected.files).toEqual([]);
     expect(selected.directories).toEqual(['apps', 'apps/api']);
+  });
+
+  it('does not treat regular files as roots for wildcard recursive selectors', () => {
+    const manifest = createAgentScaffoldManifest([
+      {
+        type: 'folder',
+        name: 'apps',
+        children: [{ type: 'file', name: 'README.md', content: '# apps\n' }],
+      },
+    ]);
+
+    expect(() =>
+      selectAgentScaffoldManifest(manifest, ['apps/*/**']),
+    ).toThrow(
+      expect.objectContaining({
+        code: 'UNMATCHED_FILE_SELECTOR',
+        selector: 'apps/*/**',
+      }),
+    );
+  });
+
+  it('does not treat a literal regular file as a recursive directory root', () => {
+    const manifest = createAgentScaffoldManifest([
+      {
+        type: 'folder',
+        name: 'apps',
+        children: [{ type: 'file', name: 'README.md', content: '# apps\n' }],
+      },
+    ]);
+
+    expect(() =>
+      selectAgentScaffoldManifest(manifest, ['apps/README.md/**']),
+    ).toThrow(
+      expect.objectContaining({
+        code: 'UNMATCHED_FILE_SELECTOR',
+        selector: 'apps/README.md/**',
+      }),
+    );
+  });
+
+  it('still allows exact selection of a regular file', () => {
+    const manifest = createAgentScaffoldManifest([
+      {
+        type: 'folder',
+        name: 'apps',
+        children: [{ type: 'file', name: 'README.md', content: '# apps\n' }],
+      },
+    ]);
+
+    const selected = selectAgentScaffoldManifest(manifest, ['apps/README.md']);
+
+    expect(selected.files.map((file) => file.path)).toEqual([
+      'apps/README.md',
+    ]);
+    expect(selected.directories).toEqual(['apps']);
   });
 
   it('rejects invalid and unmatched selectors with the offending selector', () => {
