@@ -104,7 +104,7 @@ export function createAgentScaffoldRouter(
         if (typeof artifact.body === 'string') {
           return c.body(artifact.body);
         }
-        return c.body(artifact.body);
+        return c.body(Uint8Array.from(artifact.body).buffer);
       }
 
       const scaffold = dependencies.scaffold ?? scaffoldToPullRequest;
