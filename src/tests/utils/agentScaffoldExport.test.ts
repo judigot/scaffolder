@@ -242,6 +242,10 @@ describe('agent scaffold exports', () => {
       /at least one selector/,
     );
 
+    expect(() =>
+      selectAgentScaffoldManifest(manifest, ['BOM.txt']),
+    ).toThrow(/BOM\.txt/);
+
     try {
       selectAgentScaffoldManifest(manifest, ['missing/**']);
       throw new Error('Expected unmatched selector to fail');
