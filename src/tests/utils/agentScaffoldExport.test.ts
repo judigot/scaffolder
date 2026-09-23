@@ -140,8 +140,8 @@ describe('agent scaffold exports', () => {
       createAgentScaffoldManifest(fixture()),
     );
     const corrupted = generated.replace(
-      /SCAFFOLDER_ZIP\n[A-Za-z0-9+/]/,
-      'SCAFFOLDER_ZIP\n!',
+      /(<<'SCAFFOLDER_ZIP'\n)[A-Za-z0-9+/]/,
+      '$1!',
     );
     writeFileSync(script, corrupted);
 
