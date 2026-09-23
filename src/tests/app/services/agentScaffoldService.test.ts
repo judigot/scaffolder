@@ -218,7 +218,7 @@ describe('scaffoldToArtifact', () => {
                 {
                   type: 'file',
                   name: 'excluded.txt',
-                  content: 'USE_USER_ENV(SECRET)',
+                  content: '[[ USE_USER_ENV(SECRET) ]]',
                 },
               ],
               filesUsingUserEnv: ['excluded.txt'],
