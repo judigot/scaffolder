@@ -4,7 +4,7 @@ import { getSchemaInfo } from '@/utils/getSchemaInfo.ts';
 import type { ISchemaInfo, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
 import type { IFormStore } from '@/useFormStore.ts';
-import { frameworks } from '@/useFormStore.ts';
+import { frameworks, useFormStore } from '@/useFormStore.ts';
 import { CREATION_MODES } from '@/constants.ts';
 import generateMockData from '@/utils/generateMockData.ts';
 
@@ -203,6 +203,38 @@ describe('USE_ROWS template command', () => {
   };
 
   describe('SQL format (default)', () => {
+    it('uses explicit formData instead of leaked global SQL state', () => {
+      const previous = useFormStore.getState();
+      useFormStore.setState({ dbType: 'mysql', quote: '`' });
+
+      try {
+        const schema = createSchemaWithSeedData();
+        const schemaInfoParsed = getSchemaInfo(schema);
+        const formData = createFormData();
+        const result = processCommand(
+          '[[USE_ROWS(tableName=user_types)]]',
+          createUserFiles(),
+          schemaInfoParsed,
+          schema[0],
+          undefined,
+          undefined,
+          formData,
+          undefined,
+          undefined,
+          false,
+          createMockData(schema),
+        );
+
+        expect(result).toContain('INSERT INTO "user_types"');
+        expect(result).not.toContain('INSERT INTO `user_types`');
+      } finally {
+        useFormStore.setState({
+          dbType: previous.dbType,
+          quote: previous.quote,
+        });
+      }
+    });
+
     it('should generate SQL INSERT for single table with seed data', () => {
       const schema = createSchemaWithSeedData();
       const schemaInfoParsed = getSchemaInfo(schema);
