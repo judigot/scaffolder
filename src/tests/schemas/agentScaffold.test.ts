@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { AgentScaffoldRequestSchema } from '@/schemas/agentScaffold.ts';
 import {
@@ -15,7 +16,7 @@ const knexProjectUrl =
 describe('agent scaffold output documentation', () => {
   it('keeps every documented curl payload valid for hono-react', () => {
     const docs = readFileSync(
-      new URL('../../../docs/agent-scaffold-outputs.md', import.meta.url),
+      resolve(process.cwd(), 'docs/agent-scaffold-outputs.md'),
       'utf8',
     );
     const lines = docs.split('\n');
