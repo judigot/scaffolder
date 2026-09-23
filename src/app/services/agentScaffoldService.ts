@@ -75,6 +75,10 @@ import {
   type IAgentScaffoldManifest,
 } from '@/utils/agentScaffoldExport.ts';
 import {
+  AgentScaffoldFileSelectionError,
+  selectAgentScaffoldManifest,
+} from '@/utils/agentScaffoldFileSelection.ts';
+import {
   GitHubDraftPullRequestError,
   publishDraftPullRequest,
   type IDraftPullRequestResult,
@@ -676,11 +680,32 @@ export async function scaffoldToArtifact(
   }
 
   const generated = await generateAgentScaffold(request, dependencies);
+
+  let selectedManifest: IAgentScaffoldManifest;
+  try {
+    selectedManifest = selectAgentScaffoldManifest(
+      generated.manifest,
+      request.files,
+    );
+  } catch (error: unknown) {
+    if (error instanceof AgentScaffoldFileSelectionError) {
+      throw new AgentScaffoldError(error.message, {
+        status: 400,
+        code: error.code,
+        details:
+          error.selector === undefined
+            ? undefined
+            : { selector: error.selector },
+      });
+    }
+    throw error;
+  }
+
   return {
     body:
       request.output === 'zip'
-        ? createAgentScaffoldZip(generated.manifest)
-        : createAgentScaffoldShell(generated.manifest),
+        ? createAgentScaffoldZip(selectedManifest)
+        : createAgentScaffoldShell(selectedManifest),
     contentType:
       request.output === 'zip'
         ? 'application/zip'
