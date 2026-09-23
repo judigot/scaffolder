@@ -12,7 +12,10 @@ const foreignKeyObjectSchema = z.object({
  * Zod schema for validating foreign key references (string format: "table.column")
  * Transforms string format to object format for consistency
  */
-const foreignKeyStringSchema = z.string().transform((val) => {
+const foreignKeyStringSchema = z
+  .string()
+  .refine((val) => val.split('.').length <= 2, 'Foreign key must be table or table.column')
+  .transform((val) => {
   const parts = val.split('.');
   if (parts.length === 2) {
     const [tableName, columnName] = parts;
@@ -21,12 +24,12 @@ const foreignKeyStringSchema = z.string().transform((val) => {
       foreign_column_name: columnName,
     };
   }
-  // If it doesn't match "table.column" format, assume it's just the table name with "id" column
+  // A bare table name is shorthand for its id column.
   return {
     foreign_table_name: val,
     foreign_column_name: 'id',
   };
-});
+  });
 
 /**
  * Combined foreign key schema that accepts both formats
@@ -185,7 +188,16 @@ const schemaInfoSchema = z
       return hasIdColumn || hasCompositePrimaryKey;
     },
     { message: "Each table must have an 'id' column or compositePrimaryKey" },
-  );
+  )
+  .superRefine((table, ctx) => {
+    const seen = new Set<string>();
+    table.columnsInfo.forEach((column, index) => {
+      if (seen.has(column.column_name)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['columnsInfo', index, 'column_name'], message: `Duplicate column name: ${column.column_name}` });
+      }
+      seen.add(column.column_name);
+    });
+  });
 
 /**
  * Zod schema for validating the complete schemaInfo array
@@ -219,6 +231,15 @@ export const schemaInfoArraySchema = z
     },
     { message: 'Foreign key references a non-existent table' },
   )
+  .superRefine((tables, ctx) => {
+    const columnsByTable = new Map(tables.map((table) => [table.tableName, new Set(table.columnsInfo.map((column) => column.column_name))]));
+    tables.forEach((table, tableIndex) => table.columnsInfo.forEach((column, columnIndex) => {
+      const foreignKey = column.foreign_key;
+      if (foreignKey && !columnsByTable.get(foreignKey.foreign_table_name)?.has(foreignKey.foreign_column_name)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: [tableIndex, 'columnsInfo', columnIndex, 'foreign_key', 'foreign_column_name'], message: `Foreign key references non-existent column ${foreignKey.foreign_table_name}.${foreignKey.foreign_column_name}` });
+      }
+    }));
+  })
   .refine(
     (tables) => {
       // Validate relationship references point to existing tables
@@ -533,7 +554,7 @@ function parseCompactTable(tableDef: string): SchemaInfo | null {
   for (let i = 1; i < parts.length; i++) {
     const relPart = parts[i];
     if (relPart.length < 2) {
-      continue;
+      return null;
     }
 
     const relType = relPart[0];
@@ -542,8 +563,8 @@ function parseCompactTable(tableDef: string): SchemaInfo | null {
       .split(',')
       .filter((t) => t.length > 0);
 
-    if (relTables.length === 0) {
-      continue;
+    if (relTables.length === 0 || !['<', '>', '^', '*'].includes(relType)) {
+      return null;
     }
 
     if (relType === '<') {
@@ -583,12 +604,9 @@ export function parseCompactSchema(text: string): SchemaInfoArray | null {
   }
 
   // Split by newlines or by @
-  const tableLines = schemaContent
-    .split(/\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith('@'));
+  const tableLines = schemaContent.split(/\n/).map((line) => line.trim());
 
-  if (tableLines.length === 0) {
+  if (tableLines.length === 0 || tableLines.some((line) => !line.startsWith('@'))) {
     return null;
   }
 

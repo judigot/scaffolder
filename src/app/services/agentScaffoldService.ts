@@ -486,6 +486,18 @@ export async function scaffoldToPullRequest(
   request: IAgentScaffoldRequest,
   dependencies: IAgentScaffoldServiceDependencies = {},
 ): Promise<IAgentScaffoldResult> {
+  if (request.output !== undefined && request.output !== 'github_pr') {
+    throw new AgentScaffoldError(
+      `${request.output} output is not implemented yet`,
+      { status: 400, code: 'UNSUPPORTED_OUTPUT' },
+    );
+  }
+  if (request.target_repo === undefined) {
+    throw new AgentScaffoldError('target_repo is required for github_pr output', {
+      status: 400,
+      code: 'INVALID_REFERENCE',
+    });
+  }
   let projectReference: IParsedProjectReference;
   let targetRepo: IParsedTargetRepo;
   try {
