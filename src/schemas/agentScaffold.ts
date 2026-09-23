@@ -55,7 +55,7 @@ export const AgentScaffoldRequestSchema = z
     const output = data.output ?? 'github_pr';
     if (output === 'github_pr' && data.target_repo === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['target_repo'],
         message: 'target_repo is required for github_pr output',
       });
@@ -74,7 +74,7 @@ export const AgentScaffoldRequestSchema = z
       for (const field of githubOnlyFields) {
         if (data[field] !== undefined) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             path: [field],
             message: `${field} is only supported for github_pr output`,
           });
