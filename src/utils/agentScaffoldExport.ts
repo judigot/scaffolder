@@ -276,9 +276,11 @@ fi
 had_empty_dest=0
 if [ -e "$dest" ]; then
   [ -d "$dest" ] || fail "destination already exists and is not a directory"
-  if [ -n "$(find "$dest" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]; then
-    fail "destination directory must be empty"
-  fi
+  for entry in "$dest"/.[!.]* "$dest"/..?* "$dest"/*; do
+    if [ -e "$entry" ] || [ -L "$entry" ]; then
+      fail "destination directory must be empty"
+    fi
+  done
   had_empty_dest=1
 fi
 
