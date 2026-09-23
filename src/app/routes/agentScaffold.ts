@@ -101,6 +101,9 @@ export function createAgentScaffoldRouter(
           `attachment; filename="${artifact.filename}"`,
         );
         c.header('Cache-Control', 'no-store');
+        if (typeof artifact.body === 'string') {
+          return c.body(artifact.body);
+        }
         return c.body(artifact.body);
       }
 
