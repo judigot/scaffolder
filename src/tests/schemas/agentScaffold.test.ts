@@ -122,6 +122,21 @@ describe('AgentScaffoldRequestSchema', () => {
     }
   });
 
+  it('rejects unsupported output values', () => {
+    const result = AgentScaffoldRequestSchema.safeParse({
+      schemaInfo: honoReactCompactSchema,
+      project_url: knexProjectUrl,
+      output: 'tar',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.path.join('.'))).toContain(
+        'output',
+      );
+    }
+  });
+
   it('accepts explicit github_pr output', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: honoReactCompactSchema,
