@@ -1,12 +1,71 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { AgentScaffoldRequestSchema } from '@/schemas/agentScaffold.ts';
 import {
   honoReactAgentSchemaInfo,
   honoReactCompactSchema,
+  honoReactSchemaFilter,
 } from '@/tests/helpers/honoReactAgentSchema.ts';
+import { validateSchemaInfoFromResponse } from '@/utils/schemaInfoValidator.ts';
+import { schemaMatchesFilter } from '@/utils/project-builder/utils/filterCompatibleProjects.ts';
 
 const knexProjectUrl =
   'https://github.com/judigot/scaffolder-files/tree/main/Projects/ORM%20Schema%20-%20Knex';
+
+describe('agent scaffold output documentation', () => {
+  it('keeps every documented curl payload valid for hono-react', () => {
+    const docs = readFileSync(
+      new URL('../../../docs/agent-scaffold-outputs.md', import.meta.url),
+      'utf8',
+    );
+    const lines = docs.split('\n');
+    const payloads: unknown[] = [];
+
+    for (let index = 0; index < lines.length; index += 1) {
+      if (lines[index]?.trim() !== "-d '{") continue;
+
+      const jsonLines = ['{'];
+      for (let cursor = index + 1; cursor < lines.length; cursor += 1) {
+        const line = lines[cursor] ?? '';
+        if (line.trim().startsWith("}'")) {
+          jsonLines.push('}');
+          index = cursor;
+          break;
+        }
+        jsonLines.push(line);
+      }
+      payloads.push(JSON.parse(jsonLines.join('\n')));
+    }
+
+    expect(payloads).toHaveLength(3);
+    const outputs: string[] = [];
+
+    for (const payload of payloads) {
+      const parsed = AgentScaffoldRequestSchema.safeParse(payload);
+      expect(parsed.success).toBe(true);
+      if (!parsed.success || typeof parsed.data.schemaInfo !== 'string') {
+        continue;
+      }
+
+      outputs.push(parsed.data.output ?? 'github_pr');
+      expect(parsed.data.schemaInfo).toContain('\n');
+      expect(parsed.data.schemaInfo).not.toContain('\\n');
+
+      const schemaResult = validateSchemaInfoFromResponse(
+        parsed.data.schemaInfo,
+      );
+      expect(schemaResult.success).toBe(true);
+      expect(schemaResult.data).toBeDefined();
+      if (schemaResult.data !== undefined) {
+        expect(
+          schemaMatchesFilter(schemaResult.data, honoReactSchemaFilter),
+        ).toBe(true);
+      }
+    }
+
+    expect(outputs).toEqual(['github_pr', 'zip', 'sh']);
+  });
+});
 
 describe('AgentScaffoldRequestSchema', () => {
   it('accepts a scaffolder-files project_url with encoded spaces', () => {
