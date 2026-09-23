@@ -5,6 +5,11 @@ import {
   type IGitHubGitClient,
   type IGitHubPullRequest,
 } from '@/app/services/githubDraftPullRequestService.ts';
+import type { IFile } from '@/components/FileViewer.tsx';
+import {
+  agentScaffoldManifestToStructure,
+  createAgentScaffoldManifest,
+} from '@/utils/agentScaffoldExport.ts';
 
 class GitHubHttpError extends Error {
   readonly status: number;
@@ -205,6 +210,54 @@ describe('publishDraftPullRequest', () => {
 
     expect(createBlob).toHaveBeenCalledTimes(3);
     expect(result.filesCreated).toBe(3);
+  });
+
+  it('preserves BOM bytes and executable mode in GitHub blobs and tree entries', async () => {
+    const executable: IFile = {
+      type: 'file',
+      name: 'script.sh',
+      content: '\uFEFF#!/bin/sh\\nprintf "%s\\n" "ok"\\n',
+    };
+    Reflect.set(executable, 'mode', 0o755);
+
+    const manifest = createAgentScaffoldManifest([executable]);
+    const structure = agentScaffoldManifestToStructure(manifest);
+    const createBlob = vi.fn(() =>
+      Promise.resolve({ data: { sha: 'script-blob' } }),
+    );
+    const createTree = vi.fn(() =>
+      Promise.resolve({ data: { sha: 'new-tree' } }),
+    );
+    const client = createGitClient();
+    client.git.createBlob = createBlob;
+    client.git.createTree = createTree;
+
+    await publishDraftPullRequest(
+      { ...createParams, structure },
+      { getOctokit: () => Promise.resolve(client) },
+    );
+
+    expect(createBlob).toHaveBeenCalledTimes(1);
+    const blobCall = createBlob.mock.calls[0]?.[0];
+    expect(blobCall).toBeDefined();
+    if (blobCall !== undefined) {
+      expect([...Buffer.from(blobCall.content, 'base64')]).toEqual([
+        ...manifest.files[0].bytes,
+      ]);
+    }
+
+    expect(createTree).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tree: [
+          expect.objectContaining({
+            path: 'script.sh',
+            mode: '100755',
+            type: 'blob',
+            sha: 'script-blob',
+          }),
+        ],
+      }),
+    );
   });
 
   it('returns a typed error when no files were generated', async () => {
