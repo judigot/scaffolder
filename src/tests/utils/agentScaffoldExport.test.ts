@@ -36,6 +36,7 @@ function fixture(): IStructure {
 
   return [
     { type: 'file', name: '.env.example', content: 'A=$HOME\\n' },
+    { type: 'file', name: 'bom.txt', content: '\uFEFFbom-preserved\\n' },
     { type: 'file', name: 'empty.txt', content: '' },
     {
       type: 'file',
@@ -116,6 +117,7 @@ describe('agent scaffold exports', () => {
 
     for (const relativePath of [
       '.env.example',
+      'bom.txt',
       'empty.txt',
       'binary.bin',
       'dir with spaces/run me.sh',
