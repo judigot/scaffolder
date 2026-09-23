@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { parsePullRequestUrl } from '@/utils/parseAgentScaffoldUrls.ts';
+import { getAgentScaffoldFileSelectorError } from '@/utils/agentScaffoldFileSelection.ts';
 
 function isGitHubPullRequestUrl(value: string): boolean {
   try {
@@ -27,6 +28,17 @@ export const AgentScaffoldRequestSchema = z
     // Legacy catalog folder name. Prefer project_url.
     project: z.string().trim().min(1).optional(),
     output: z.enum(['github_pr', 'zip', 'sh']).optional(),
+    files: z
+      .array(
+        z.string().superRefine((selector, ctx) => {
+          const message = getAgentScaffoldFileSelectorError(selector);
+          if (message !== undefined) {
+            ctx.addIssue({ code: 'custom', message });
+          }
+        }),
+      )
+      .min(1, 'files must contain at least one selector')
+      .optional(),
     target_repo: z.string().trim().min(1).optional(),
     // Pinned GitHub starter. Overrides structure.yaml $BASE / source.
     template_repo: z.string().trim().min(1).optional(),
@@ -58,6 +70,13 @@ export const AgentScaffoldRequestSchema = z
         code: 'custom',
         path: ['target_repo'],
         message: 'target_repo is required for github_pr output',
+      });
+    }
+    if (output === 'github_pr' && data.files !== undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['files'],
+        message: 'files is only supported for zip and sh output',
       });
     }
     if (output !== 'github_pr') {
