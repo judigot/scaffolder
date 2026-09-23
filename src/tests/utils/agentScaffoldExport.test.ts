@@ -61,6 +61,22 @@ function fixture(): IStructure {
   ];
 }
 
+function expectUnmatchedSelector(
+  manifest: ReturnType<typeof createAgentScaffoldManifest>,
+  selector: string,
+): void {
+  try {
+    selectAgentScaffoldManifest(manifest, [selector]);
+    throw new Error(`Expected selector to be unmatched: ${selector}`);
+  } catch (error: unknown) {
+    expect(error).toBeInstanceOf(AgentScaffoldFileSelectionError);
+    if (error instanceof AgentScaffoldFileSelectionError) {
+      expect(error.code).toBe('UNMATCHED_FILE_SELECTOR');
+      expect(error.selector).toBe(selector);
+    }
+  }
+}
+
 describe('agent scaffold exports', () => {
   it('round-trips exact bytes, directories and executable mode metadata', () => {
     const manifest = createAgentScaffoldManifest(fixture());
