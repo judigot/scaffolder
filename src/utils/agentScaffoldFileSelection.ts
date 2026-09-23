@@ -42,7 +42,10 @@ export function getAgentScaffoldFileSelectorError(
   if (selector.includes('\\')) {
     return 'File selector must use "/" as the path separator.';
   }
-  if (/[?\[\]{}!]/.test(selector)) {
+  if (
+    /[?\[\]{}!]/.test(selector) ||
+    /(?:^|[/])[^/]*[+@*]\(/.test(selector)
+  ) {
     return 'File selector uses unsupported glob syntax. Supported wildcards are * and trailing /**.';
   }
 
