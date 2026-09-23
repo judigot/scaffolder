@@ -207,6 +207,38 @@ describe('scaffoldToArtifact', () => {
     });
   });
 
+  it('rejects excluded USE_USER_ENV content before selection', async () => {
+    await expect(
+      scaffoldToArtifact(
+        {
+          output: 'zip',
+          files: ['safe.txt'],
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          buildProject: () =>
+            Promise.resolve({
+              structure: [
+                { type: 'file', name: 'safe.txt', content: 'safe' },
+                {
+                  type: 'file',
+                  name: 'excluded.txt',
+                  content: '[[USE_USER_ENV(API_KEY)]]',
+                },
+              ],
+              filesUsingUserEnv: [],
+              filesFailedToFormat: [],
+            }),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'USER_ENV_DETECTED',
+      status: 400,
+    });
+  });
+
   it('returns the unmatched selector without GitHub mutation', async () => {
     const publish = vi.fn();
     const createRepo = vi.fn();
