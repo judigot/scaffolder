@@ -284,7 +284,7 @@ fi
 
 parent=$(dirname "$dest")
 mkdir -p "$parent"
-stage=$(mktemp -d "${TMPDIR:-/tmp}/scaffolder.XXXXXX") || fail "mktemp is required"
+stage=$(mktemp -d "$parent/.scaffolder.XXXXXX") || fail "mktemp is required"
 archive="$stage/project.zip"
 payload="$stage/project.zip.b64"
 project="$stage/project"
