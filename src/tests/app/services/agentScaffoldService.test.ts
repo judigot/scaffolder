@@ -1,4 +1,7 @@
+// @vitest-environment node
+
 import { describe, expect, it, vi } from 'vitest';
+import { unzipSync } from 'fflate';
 import {
   AgentCreateRepoError,
   createAgentTargetRepository,
@@ -131,6 +134,149 @@ describe('scaffoldToArtifact', () => {
     expect(createRepo).not.toHaveBeenCalled();
   });
 
+  it('delivers only the selected manifest without GitHub mutation', async () => {
+    const publish = vi.fn();
+    const createRepo = vi.fn();
+    const result = await scaffoldToArtifact(
+      {
+        output: 'zip',
+        files: ['src/**'],
+        schemaInfo: validSchemaInfo,
+        project: 'hono-react',
+      },
+      {
+        loadUserFiles: () => createUserFiles(),
+        buildProject: () =>
+          Promise.resolve({
+            structure: [
+              { type: 'file', name: 'README.md', content: '# app' },
+              {
+                type: 'folder',
+                name: 'src',
+                children: [
+                  { type: 'file', name: 'main.ts', content: 'export {};' },
+                  { type: 'file', name: '.hidden', content: 'hidden' },
+                ],
+              },
+            ],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          }),
+        publish,
+        createRepo,
+      },
+    );
+
+    expect(result.body).toBeInstanceOf(Uint8Array);
+    if (!(result.body instanceof Uint8Array)) {
+      throw new Error('Expected ZIP artifact bytes');
+    }
+
+    const extracted = unzipSync(result.body);
+    expect(Object.keys(extracted)).toEqual(
+      expect.arrayContaining(['src/', 'src/main.ts', 'src/.hidden']),
+    );
+    expect(extracted['README.md']).toBeUndefined();
+    expect(publish).not.toHaveBeenCalled();
+    expect(createRepo).not.toHaveBeenCalled();
+  });
+
+  it('validates the complete generated manifest before selecting files', async () => {
+    await expect(
+      scaffoldToArtifact(
+        {
+          output: 'zip',
+          files: ['safe.txt'],
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          buildProject: () =>
+            Promise.resolve({
+              structure: [
+                { type: 'file', name: 'safe.txt', content: 'safe' },
+                { type: 'file', name: '../unsafe.txt', content: 'unsafe' },
+              ],
+              filesUsingUserEnv: [],
+              filesFailedToFormat: [],
+            }),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'INVALID_EXPORT_PATH',
+      status: 400,
+    });
+  });
+
+  it('rejects excluded USE_USER_ENV content before selection', async () => {
+    await expect(
+      scaffoldToArtifact(
+        {
+          output: 'zip',
+          files: ['safe.txt'],
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          buildProject: () =>
+            Promise.resolve({
+              structure: [
+                { type: 'file', name: 'safe.txt', content: 'safe' },
+                {
+                  type: 'file',
+                  name: 'excluded.txt',
+                  content: '[[USE_USER_ENV(API_KEY)]]',
+                },
+              ],
+              filesUsingUserEnv: [],
+              filesFailedToFormat: [],
+            }),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'USER_ENV_DETECTED',
+      status: 400,
+    });
+  });
+
+  it('returns the unmatched selector without GitHub mutation', async () => {
+    const publish = vi.fn();
+    const createRepo = vi.fn();
+
+    await expect(
+      scaffoldToArtifact(
+        {
+          output: 'sh',
+          files: ['missing/**'],
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          buildProject: () =>
+            Promise.resolve({
+              structure: [
+                { type: 'file', name: 'README.md', content: '# app' },
+              ],
+              filesUsingUserEnv: [],
+              filesFailedToFormat: [],
+            }),
+          publish,
+          createRepo,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'UNMATCHED_FILE_SELECTOR',
+      status: 400,
+      details: { selector: 'missing/**' },
+    });
+
+    expect(publish).not.toHaveBeenCalled();
+    expect(createRepo).not.toHaveBeenCalled();
+  });
+
   it('rejects invalid schema before build or GitHub mutation', async () => {
     const buildProject = vi.fn();
     const publish = vi.fn();
@@ -140,6 +286,7 @@ describe('scaffoldToArtifact', () => {
       scaffoldToArtifact(
         {
           output: 'sh',
+          files: ['README.md'],
           schemaInfo: [],
           project: 'hono-react',
         },
@@ -165,6 +312,7 @@ describe('scaffoldToArtifact', () => {
       scaffoldToArtifact(
         {
           output: 'sh',
+          files: ['README.md'],
           schemaInfo: validSchemaInfo,
           project: 'hono-react',
         },
