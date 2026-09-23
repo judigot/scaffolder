@@ -15,7 +15,7 @@ const foreignKeyObjectSchema = z.object({
 const foreignKeyStringSchema = z
   .string()
   .regex(
-    /^[a-z][a-z0-9_]*(?:\\.[A-Za-z][A-Za-z0-9_]*)?$/,
+    /^[a-z][a-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)?$/,
     'Foreign key must be table or table.column',
   )
   .transform((val) => {
@@ -637,7 +637,10 @@ function parseCompactSchemaResult(text: string): IValidationResult {
       errors: [{ path: 'schemaInfo', message: 'Compact schema is empty' }],
     };
   }
-  const tableLines = schemaContent.split(/\n/).map((line) => line.trim());
+  const tableLines = schemaContent
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
   const tables: SchemaInfo[] = [];
   for (let index = 0; index < tableLines.length; index += 1) {
     const line = tableLines[index] ?? '';
