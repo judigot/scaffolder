@@ -36,10 +36,7 @@ export function getAgentScaffoldFileSelectorError(
   if (selector.includes('\0')) {
     return 'File selector must not contain a NUL byte.';
   }
-  if (
-    selector.startsWith('/') ||
-    /^[A-Za-z]:[\\/]/.test(selector)
-  ) {
+  if (selector.startsWith('/') || /^[A-Za-z]:/.test(selector)) {
     return 'File selector must be relative to the generated project root.';
   }
   if (selector.includes('\\')) {
@@ -119,7 +116,7 @@ export function selectAgentScaffoldManifest(
   const selectedDirectories = new Set<string>();
 
   for (const selector of selectors) {
-    let matched = false;
+    let matched = selector === '*';
     const matches = (path: string): boolean =>
       selector === '*' || pathMatchesGlob(path, selector);
 
