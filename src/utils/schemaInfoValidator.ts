@@ -243,11 +243,13 @@ export const schemaInfoArraySchema = z
     tables.forEach((table, tableIndex) => {
       table.columnsInfo.forEach((column, columnIndex) => {
         const foreignKey = column.foreign_key;
+        const foreignColumns =
+          foreignKey === undefined
+            ? undefined
+            : columnsByTable.get(foreignKey.foreign_table_name);
         if (
           foreignKey !== undefined &&
-          !columnsByTable
-            .get(foreignKey.foreign_table_name)
-            ?.has(foreignKey.foreign_column_name)
+          foreignColumns?.has(foreignKey.foreign_column_name) !== true
         ) {
           ctx.addIssue({
             code: 'custom',
