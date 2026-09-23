@@ -166,6 +166,92 @@ describe('AgentScaffoldRequestSchema', () => {
     }
   });
 
+  it('accepts selective files for zip and sh outputs', () => {
+    for (const output of ['zip', 'sh'] as const) {
+      for (const files of [
+        ['*'],
+        ['package.json', 'src/main.tsx'],
+        ['src/**', 'public/**'],
+      ]) {
+        const result = AgentScaffoldRequestSchema.safeParse({
+          schemaInfo: honoReactCompactSchema,
+          project_url: knexProjectUrl,
+          output,
+          files,
+        });
+        expect(result.success).toBe(true);
+      }
+    }
+  });
+
+  it('rejects files for explicit and default github_pr output', () => {
+    for (const output of [undefined, 'github_pr'] as const) {
+      const result = AgentScaffoldRequestSchema.safeParse({
+        schemaInfo: honoReactCompactSchema,
+        project_url: knexProjectUrl,
+        target_repo: 'judigot/bookingwars',
+        ...(output === undefined ? {} : { output }),
+        files: ['src/**'],
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              path: ['files'],
+              message: 'files is only supported for zip and sh outputs',
+            }),
+          ]),
+        );
+      }
+    }
+  });
+
+  it('rejects empty, blank, unsafe and unsupported file selectors', () => {
+    const empty = AgentScaffoldRequestSchema.safeParse({
+      schemaInfo: honoReactCompactSchema,
+      project_url: knexProjectUrl,
+      output: 'zip',
+      files: [],
+    });
+    expect(empty.success).toBe(false);
+    if (!empty.success) {
+      expect(empty.error.issues.map((issue) => issue.path.join('.'))).toContain(
+        'files',
+      );
+    }
+
+    for (const selector of [
+      '',
+      ' ',
+      '/absolute',
+      '../escape',
+      'src/../escape',
+      'C:\\absolute',
+      'src\\main.tsx',
+      'src/[ab].ts',
+      'src/file?.ts',
+      'src/{a,b}.ts',
+      'src/+(a).ts',
+      'src/**/nested.ts',
+    ]) {
+      const result = AgentScaffoldRequestSchema.safeParse({
+        schemaInfo: honoReactCompactSchema,
+        project_url: knexProjectUrl,
+        output: 'sh',
+        files: [selector],
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(
+          result.error.issues.map((issue) => issue.path.join('.')),
+        ).toContain('files.0');
+      }
+    }
+  });
+
   it('rejects GitHub-only fields for export outputs with actionable paths', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: honoReactCompactSchema,
