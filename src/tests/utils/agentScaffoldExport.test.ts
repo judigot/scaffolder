@@ -25,6 +25,10 @@ import {
   createAgentScaffoldShell,
   createAgentScaffoldZip,
 } from '@/utils/agentScaffoldExport.ts';
+import {
+  AgentScaffoldFileSelectionError,
+  selectAgentScaffoldManifest,
+} from '@/utils/agentScaffoldFileSelection.ts';
 
 function fixture(): IStructure {
   const executable: IFile = {
@@ -49,6 +53,7 @@ function fixture(): IStructure {
       name: 'dir with spaces',
       children: [
         executable,
+        { type: 'file', name: '.nested', content: 'hidden' },
         { type: 'file', name: '$(not-run).txt', content: '`echo nope`' },
       ],
     },
@@ -121,6 +126,7 @@ describe('agent scaffold exports', () => {
       'empty.txt',
       'binary.bin',
       'dir with spaces/run me.sh',
+      'dir with spaces/.nested',
       'dir with spaces/$(not-run).txt',
     ]) {
       expect([
@@ -130,6 +136,157 @@ describe('agent scaffold exports', () => {
       ]);
     }
 
+    expect(
+      lstatSync(join(zipDestination, 'dir with spaces', 'run me.sh')).mode &
+        0o777,
+    ).toBe(0o755);
+    expect(
+      lstatSync(join(shellDestination, 'dir with spaces', 'run me.sh')).mode &
+        0o777,
+    ).toBe(0o755);
+  });
+
+  it('keeps omitted files and the whole-project selector identical', () => {
+    const manifest = createAgentScaffoldManifest(fixture());
+
+    expect(selectAgentScaffoldManifest(manifest)).toEqual(manifest);
+    expect(selectAgentScaffoldManifest(manifest, ['*'])).toEqual(manifest);
+  });
+
+  it('selects exact files, recursive directories and dotfiles without duplicates', () => {
+    const manifest = createAgentScaffoldManifest(fixture());
+    const selected = selectAgentScaffoldManifest(manifest, [
+      'bom.txt',
+      'binary.bin',
+      'empty.txt',
+      'dir with spaces/**',
+      'dir with spaces/run me.sh',
+    ]);
+
+    expect(selected.files.map((file) => file.path)).toEqual([
+      'binary.bin',
+      'bom.txt',
+      'dir with spaces/$(not-run).txt',
+      'dir with spaces/.nested',
+      'dir with spaces/run me.sh',
+      'empty.txt',
+    ]);
+    expect(selected.directories).toEqual(['dir with spaces']);
+    expect(new Set(selected.files.map((file) => file.path)).size).toBe(
+      selected.files.length,
+    );
+
+    const executable = selected.files.find(
+      (file) => file.path === 'dir with spaces/run me.sh',
+    );
+    expect(executable?.mode).toBe(0o755);
+    expect([
+      ...(selected.files.find((file) => file.path === 'binary.bin')?.bytes ??
+        []),
+    ]).toEqual([0, 1, 2, 255]);
+    expect([
+      ...(selected.files.find((file) => file.path === 'bom.txt')?.bytes ?? []),
+    ]).toEqual([
+      ...new TextEncoder().encode('\uFEFFbom-preserved\\n'),
+    ]);
+  });
+
+  it('preserves selected empty directories and their parents', () => {
+    const manifest = createAgentScaffoldManifest([
+      ...fixture(),
+      {
+        type: 'folder',
+        name: 'parent',
+        children: [{ type: 'folder', name: 'empty-child', children: [] }],
+      },
+    ]);
+    const selected = selectAgentScaffoldManifest(manifest, [
+      'parent/empty-child/**',
+    ]);
+
+    expect(selected.files).toEqual([]);
+    expect(selected.directories).toEqual(['parent', 'parent/empty-child']);
+    expect(Object.keys(unzipSync(createAgentScaffoldZip(selected)))).toEqual(
+      expect.arrayContaining(['parent/', 'parent/empty-child/']),
+    );
+  });
+
+  it('rejects invalid and unmatched selectors with the offending selector', () => {
+    const manifest = createAgentScaffoldManifest(fixture());
+
+    for (const selector of [
+      '',
+      ' ',
+      '/absolute',
+      '../escape',
+      'src/../escape',
+      'C:\\absolute',
+      'src\\main.tsx',
+      'src/[ab].ts',
+      'src/file?.ts',
+      'src/{a,b}.ts',
+      'src/+(a).ts',
+      'src/**/nested.ts',
+    ]) {
+      expect(() => selectAgentScaffoldManifest(manifest, [selector])).toThrow(
+        AgentScaffoldFileSelectionError,
+      );
+    }
+
+    expect(() => selectAgentScaffoldManifest(manifest, [])).toThrow(
+      /at least one selector/,
+    );
+
+    try {
+      selectAgentScaffoldManifest(manifest, ['missing/**']);
+      throw new Error('Expected unmatched selector to fail');
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(AgentScaffoldFileSelectionError);
+      if (error instanceof AgentScaffoldFileSelectionError) {
+        expect(error.code).toBe('UNMATCHED_FILE_SELECTOR');
+        expect(error.selector).toBe('missing/**');
+      }
+    }
+  });
+
+  it('extracts ZIP and shell to the identical selected file set', () => {
+    const root = mkdtempSync(join(tmpdir(), 'agent-scaffold-selected-'));
+    const manifest = createAgentScaffoldManifest(fixture());
+    const selected = selectAgentScaffoldManifest(manifest, [
+      'bom.txt',
+      'binary.bin',
+      'empty.txt',
+      'dir with spaces/run me.sh',
+      'dir with spaces/.nested',
+    ]);
+    const archive = join(root, 'selected.zip');
+    const zipDestination = join(root, 'zip-output');
+    const script = join(root, 'selected.sh');
+    const shellDestination = join(root, 'shell-output');
+
+    writeFileSync(archive, createAgentScaffoldZip(selected));
+    mkdirSync(zipDestination);
+    expect(
+      spawnSync('unzip', ['-qq', archive, '-d', zipDestination]).status,
+    ).toBe(0);
+
+    writeFileSync(script, createAgentScaffoldShell(selected));
+    expect(spawnSync('sh', [script, shellDestination]).status).toBe(0);
+
+    for (const relativePath of selected.files.map((file) => file.path)) {
+      expect([...readFileSync(join(zipDestination, relativePath))]).toEqual([
+        ...readFileSync(join(shellDestination, relativePath)),
+      ]);
+    }
+
+    expect(existsSync(join(zipDestination, '.env.example'))).toBe(false);
+    expect(existsSync(join(shellDestination, '.env.example'))).toBe(false);
+    expect(
+      existsSync(join(zipDestination, 'dir with spaces', '$(not-run).txt')),
+    ).toBe(false);
+    expect(
+      existsSync(join(shellDestination, 'dir with spaces', '$(not-run).txt')),
+    ).toBe(false);
     expect(
       lstatSync(join(zipDestination, 'dir with spaces', 'run me.sh')).mode &
         0o777,
