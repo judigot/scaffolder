@@ -629,6 +629,32 @@ describe("schemaInfoValidator", () => {
 			expect(result.errors?.[0]?.message).toContain("empty column");
 			expect(result.errors?.[0]?.message).not.toContain("Invalid JSON");
 		});
+
+		it("preserves valid table.column foreign-key string syntax", () => {
+			const result = validateSchemaInfo([
+				{
+					tableName: "users",
+					columnsInfo: [
+						{ column_name: "id", data_type: "number", is_nullable: "NO", primary_key: true },
+					],
+				},
+				{
+					tableName: "posts",
+					columnsInfo: [
+						{ column_name: "id", data_type: "number", is_nullable: "NO", primary_key: true },
+						{ column_name: "user_id", data_type: "number", is_nullable: "NO", foreign_key: "users.id" },
+					],
+				},
+			]);
+			expect(result.success).toBe(true);
+		});
+
+		it("preserves blank lines in otherwise valid compact schemas", () => {
+			const result = validateSchemaInfoFromResponse(
+				"<@@SCHEMA@@>\n\n@users:id:n#pk,email:s\n\n<@@/SCHEMA@@>",
+			);
+			expect(result.success).toBe(true);
+		});
 	});
 
 	describe("parseAndValidateSchemaInfo", () => {
