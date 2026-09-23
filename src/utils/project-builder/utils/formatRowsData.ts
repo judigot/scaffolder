@@ -1,5 +1,7 @@
 import type { ParsedJSONSchema } from '@/interfaces/interfaces.ts';
-import generateSQLInserts from '@/utils/generateSQLInserts.ts';
+import generateSQLInserts, {
+  type IGenerateSQLInsertsOptions,
+} from '@/utils/generateSQLInserts.ts';
 
 export interface IRowsParams {
   tableName?: string;
@@ -115,6 +117,7 @@ const applyPagination = (
 export const formatRowsData = (
   rowData: ParsedJSONSchema,
   params: IRowsParams = {},
+  sqlOptions?: IGenerateSQLInsertsOptions,
 ): string => {
   // Apply pagination if specified
   const paginatedData = applyPagination(rowData, params.rows, params.offset);
@@ -128,7 +131,7 @@ export const formatRowsData = (
 
   switch (format) {
     case 'sql':
-      return generateSQLInserts(paginatedData);
+      return generateSQLInserts(paginatedData, sqlOptions);
     case 'csv':
       return generateCSV(paginatedData, params);
     case 'json':
