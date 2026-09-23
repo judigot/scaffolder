@@ -1,13 +1,22 @@
-import type { ParsedJSONSchema } from '@/interfaces/interfaces.ts';
+import type { DBTypes, ParsedJSONSchema } from '@/interfaces/interfaces.ts';
 import { useFormStore } from '@/useFormStore.ts';
 import { formatDateForMySQL } from '@/utils/common.ts';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 
-const generateSQLInserts = (data: ParsedJSONSchema): string => {
-  const quote = useFormStore.getState().quote;
+export interface IGenerateSQLInsertsOptions {
+  dbType?: DBTypes;
+  quote?: string;
+}
+
+const generateSQLInserts = (
+  data: ParsedJSONSchema,
+  options: IGenerateSQLInsertsOptions = {},
+): string => {
+  const formState = useFormStore.getState();
+  const quote = options.quote ?? formState.quote;
+  const dbType = options.dbType ?? formState.dbType;
   let inserts = '';
-  const { dbType } = useFormStore.getState();
 
   Object.entries(data).forEach(([tableName, records]) => {
     if (records.length === 0) {
