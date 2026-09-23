@@ -284,6 +284,7 @@ describe('scaffoldToArtifact', () => {
       scaffoldToArtifact(
         {
           output: 'sh',
+          files: ['README.md'],
           schemaInfo: [],
           project: 'hono-react',
         },
@@ -309,6 +310,7 @@ describe('scaffoldToArtifact', () => {
       scaffoldToArtifact(
         {
           output: 'sh',
+          files: ['README.md'],
           schemaInfo: validSchemaInfo,
           project: 'hono-react',
         },
