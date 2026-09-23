@@ -305,16 +305,7 @@ describe('agent scaffold exports', () => {
       },
     ]);
 
-    try {
-      selectAgentScaffoldManifest(manifest, ['apps/*/**']);
-      throw new Error('Expected wildcard recursive selector to be unmatched');
-    } catch (error: unknown) {
-      expect(error).toBeInstanceOf(AgentScaffoldFileSelectionError);
-      if (error instanceof AgentScaffoldFileSelectionError) {
-        expect(error.code).toBe('UNMATCHED_FILE_SELECTOR');
-        expect(error.selector).toBe('apps/*/**');
-      }
-    }
+    expectUnmatchedSelector(manifest, 'apps/*/**');
   });
 
   it('does not treat a literal regular file as a recursive directory root', () => {
@@ -326,16 +317,7 @@ describe('agent scaffold exports', () => {
       },
     ]);
 
-    try {
-      selectAgentScaffoldManifest(manifest, ['apps/README.md/**']);
-      throw new Error('Expected recursive file-root selector to be unmatched');
-    } catch (error: unknown) {
-      expect(error).toBeInstanceOf(AgentScaffoldFileSelectionError);
-      if (error instanceof AgentScaffoldFileSelectionError) {
-        expect(error.code).toBe('UNMATCHED_FILE_SELECTOR');
-        expect(error.selector).toBe('apps/README.md/**');
-      }
-    }
+    expectUnmatchedSelector(manifest, 'apps/README.md/**');
   });
 
   it('still allows exact selection of a regular file', () => {
