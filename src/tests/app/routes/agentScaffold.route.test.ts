@@ -68,6 +68,103 @@ describe('agent scaffold API', () => {
     expect(successSchema.safeParse(payload).success).toBe(true);
   });
 
+  it('POST / returns shell export without consuming a GitHub token', async () => {
+    const app = createAgentScaffoldRouter({
+      agentApiKey: 'agent-secret',
+      scaffoldArtifact: (_request, context) => {
+        expect(context).toEqual({ auth0UserId: undefined });
+        return Promise.resolve({
+          body: 'echo ok\\n',
+          contentType: 'text/x-shellscript; charset=utf-8',
+          filename: 'scaffold.sh',
+          projectName: 'hono-react',
+          tables: ['users'],
+        });
+      },
+    });
+
+    const response = await app.request('http://localhost/', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer agent-secret',
+        'x-github-token': ' malformed token ',
+      },
+      body: JSON.stringify({
+        output: 'sh',
+        schemaInfo: [
+          {
+            tableName: 'users',
+            columnsInfo: [
+              {
+                column_name: 'id',
+                data_type: 'number',
+                is_nullable: 'NO',
+                primary_key: true,
+              },
+            ],
+          },
+        ],
+        project: 'hono-react',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/x-shellscript');
+    expect(response.headers.get('content-disposition')).toBe(
+      'attachment; filename="scaffold.sh"',
+    );
+    expect(await response.text()).toBe('echo ok\\n');
+  });
+
+  it('POST / returns zip export as an attachment', async () => {
+    const app = createAgentScaffoldRouter({
+      agentApiKey: 'agent-secret',
+      scaffoldArtifact: () =>
+        Promise.resolve({
+          body: new Uint8Array([80, 75, 3, 4]),
+          contentType: 'application/zip',
+          filename: 'scaffold.zip',
+          projectName: 'hono-react',
+          tables: ['users'],
+        }),
+    });
+
+    const response = await app.request('http://localhost/', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer agent-secret',
+      },
+      body: JSON.stringify({
+        output: 'zip',
+        schemaInfo: [
+          {
+            tableName: 'users',
+            columnsInfo: [
+              {
+                column_name: 'id',
+                data_type: 'number',
+                is_nullable: 'NO',
+                primary_key: true,
+              },
+            ],
+          },
+        ],
+        project: 'hono-react',
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('application/zip');
+    expect(response.headers.get('content-disposition')).toBe(
+      'attachment; filename="scaffold.zip"',
+    );
+    expect([...new Uint8Array(await response.arrayBuffer())]).toEqual([
+      80, 75, 3, 4,
+    ]);
+  });
+
   it('POST / requires auth when targeting an existing pull request', async () => {
     const app = createAgentScaffoldRouter({
       verifyAuthToken: () =>
