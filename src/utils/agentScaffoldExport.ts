@@ -230,25 +230,33 @@ export function createAgentScaffoldZip(
   const content: Zippable = {};
 
   for (const directory of manifest.directories) {
-    content[`${directory}/`] = [
-      new Uint8Array(),
+    content[directory] = [
+      {},
       { level: 0, mtime: FIXED_ZIP_MTIME, os: 3, attrs: 0o755 << 16 },
     ];
   }
 
   for (const file of manifest.files) {
-    content[file.path] = [
-      file.bytes,
-      {
-        level: 6,
-        mtime: FIXED_ZIP_MTIME,
-        os: 3,
-        attrs: file.mode << 16,
-      },
-    ];
+    content[file.path] =
+      file.mode === 0o755
+        ? [
+            file.bytes,
+            {
+              level: 6,
+              mtime: FIXED_ZIP_MTIME,
+              os: 3,
+              attrs: 0o755 << 16,
+            },
+          ]
+        : file.bytes;
   }
 
-  return zipSync(content, { level: 6, mtime: FIXED_ZIP_MTIME });
+  return zipSync(content, {
+    level: 6,
+    mtime: FIXED_ZIP_MTIME,
+    os: 3,
+    attrs: 0o644 << 16,
+  });
 }
 
 export function createAgentScaffoldShell(
