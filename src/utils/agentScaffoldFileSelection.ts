@@ -30,6 +30,9 @@ export function getAgentScaffoldFileSelectorError(
   if (selector === '*') {
     return undefined;
   }
+  if (selector === '**') {
+    return 'Use "*" to select the entire project; recursive ** requires a directory prefix.';
+  }
   if (selector.includes('\0')) {
     return 'File selector must not contain a NUL byte.';
   }
