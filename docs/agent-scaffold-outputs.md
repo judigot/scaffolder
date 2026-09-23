@@ -95,7 +95,7 @@ Supported targets are POSIX `sh` environments on Linux and macOS with:
 
 - `base64` supporting GNU `-d` or BSD/macOS `-D`;
 - `unzip`;
-- `mktemp`, `find`, `dirname`, `mv`, `rm`, and `rmdir`.
+- `mktemp`, `dirname`, `mv`, `rm`, and `rmdir`.
 
 ## Validation and limits
 
