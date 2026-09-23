@@ -117,8 +117,13 @@ export function selectAgentScaffoldManifest(
 
   for (const selector of selectors) {
     let matched = selector === '*';
+    const recursivePrefix = selector.endsWith('/**')
+      ? selector.slice(0, -3)
+      : undefined;
     const matches = (path: string): boolean =>
-      selector === '*' || pathMatchesGlob(path, selector);
+      selector === '*' ||
+      pathMatchesGlob(path, selector) ||
+      (recursivePrefix !== undefined && pathMatchesGlob(path, recursivePrefix));
 
     for (const file of manifest.files) {
       if (!matches(file.path)) continue;
