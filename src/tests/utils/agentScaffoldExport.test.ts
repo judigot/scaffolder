@@ -230,6 +230,7 @@ describe('agent scaffold exports', () => {
       'src/file?.ts',
       'src/{a,b}.ts',
       'src/+(a).ts',
+      '**',
       'src/**/nested.ts',
     ]) {
       expect(() => selectAgentScaffoldManifest(manifest, [selector])).toThrow(
