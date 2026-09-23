@@ -233,7 +233,7 @@ describe('agent scaffold exports', () => {
 
     expect(() =>
       createAgentScaffoldManifest([
-        { type: 'file', name: 'dir\\\\file.txt', content: 'one' },
+        { type: 'file', name: 'dir\\file.txt', content: 'one' },
         { type: 'file', name: 'dir/file.txt', content: 'two' },
       ]),
     ).toThrow(/collision/);
