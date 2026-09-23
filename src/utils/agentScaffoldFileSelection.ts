@@ -110,7 +110,7 @@ export function selectAgentScaffoldManifest(
 
     let matched = false;
     if (selector === '*') {
-      matched = manifest.files.length > 0 || manifest.directories.length > 0;
+      matched = true;
       for (const file of manifest.files) selectedFiles.add(file.path);
       for (const directory of manifest.directories) {
         selectedDirectories.add(directory);
