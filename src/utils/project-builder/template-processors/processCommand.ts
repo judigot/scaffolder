@@ -366,7 +366,13 @@ export function processCommand(
     }
 
     // Format the row data
-    return formatRowsData(rowDataToFormat, params);
+    return formatRowsData(
+      rowDataToFormat,
+      params,
+      formData === undefined
+        ? undefined
+        : { dbType: formData.dbType, quote: formData.quote },
+    );
   });
 
   // Then, process USE_TEMPLATE commands to include other templates
