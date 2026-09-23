@@ -36,7 +36,7 @@ export function getAgentScaffoldFileSelectorError(
   if (selector.startsWith('/') || /^[A-Za-z]:/.test(selector)) {
     return 'File selector must be relative to the generated project root.';
   }
-  if (selector.includes('?')) {
+  if (/[?\[\]{}()!]/.test(selector)) {
     return 'File selector uses unsupported glob syntax. Only * and a trailing /** are supported.';
   }
 
@@ -67,9 +67,10 @@ function addParentDirectories(
   path: string,
   selectedDirectories: Set<string>,
   sourceDirectories: Set<string>,
+  includePath = false,
 ): void {
   const segments = path.split('/');
-  segments.pop();
+  if (!includePath) segments.pop();
 
   while (segments.length > 0) {
     const parent = segments.join('/');
@@ -144,9 +145,10 @@ export function selectAgentScaffoldManifest(
   }
   for (const directoryPath of [...selectedDirectories]) {
     addParentDirectories(
-      `${directoryPath}/placeholder`,
+      directoryPath,
       selectedDirectories,
       sourceDirectories,
+      true,
     );
   }
 
