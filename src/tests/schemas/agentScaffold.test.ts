@@ -256,6 +256,7 @@ describe('AgentScaffoldRequestSchema', () => {
       'src/file?.ts',
       'src/{a,b}.ts',
       'src/+(a).ts',
+      '**',
       'src/**/nested.ts',
     ]) {
       const result = AgentScaffoldRequestSchema.safeParse({
