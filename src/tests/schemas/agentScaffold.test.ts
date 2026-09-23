@@ -95,6 +95,43 @@ describe('AgentScaffoldRequestSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('accepts zip and sh outputs without target_repo', () => {
+    for (const output of ['zip', 'sh'] as const) {
+      const result = AgentScaffoldRequestSchema.safeParse({
+        schemaInfo: honoReactCompactSchema,
+        project_url: knexProjectUrl,
+        output,
+      });
+      expect(result.success).toBe(true);
+    }
+  });
+
+  it('rejects GitHub-only fields for export outputs with actionable paths', () => {
+    const result = AgentScaffoldRequestSchema.safeParse({
+      schemaInfo: honoReactCompactSchema,
+      project_url: knexProjectUrl,
+      output: 'zip',
+      target_repo: 'judigot/bookingwars',
+      branch: 'scaffolder/test',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.path.join('.'))).toEqual(
+        expect.arrayContaining(['target_repo', 'branch']),
+      );
+    }
+  });
+
+  it('accepts explicit github_pr output', () => {
+    const result = AgentScaffoldRequestSchema.safeParse({
+      schemaInfo: honoReactCompactSchema,
+      project_url: knexProjectUrl,
+      output: 'github_pr',
+      target_repo: 'judigot/bookingwars',
+    });
+    expect(result.success).toBe(true);
+  });
+
   it('rejects a missing target_repo', () => {
     const result = AgentScaffoldRequestSchema.safeParse({
       schemaInfo: [],
