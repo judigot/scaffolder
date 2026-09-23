@@ -222,8 +222,14 @@ describe('publishDraftPullRequest', () => {
 
     const manifest = createAgentScaffoldManifest([executable]);
     const structure = agentScaffoldManifestToStructure(manifest);
-    const createBlob = vi.fn(() =>
-      Promise.resolve({ data: { sha: 'script-blob' } }),
+    const blobPayloads: Parameters<
+      IGitHubGitClient['git']['createBlob']
+    >[0][] = [];
+    const createBlob = vi.fn(
+      (params: Parameters<IGitHubGitClient['git']['createBlob']>[0]) => {
+        blobPayloads.push(params);
+        return Promise.resolve({ data: { sha: 'script-blob' } });
+      },
     );
     const createTree = vi.fn(() =>
       Promise.resolve({ data: { sha: 'new-tree' } }),
@@ -238,11 +244,13 @@ describe('publishDraftPullRequest', () => {
     );
 
     expect(createBlob).toHaveBeenCalledTimes(1);
-    const blobCall = createBlob.mock.calls[0]?.[0];
+    const blobCall = blobPayloads[0];
+    const manifestFile = manifest.files[0];
     expect(blobCall).toBeDefined();
-    if (blobCall !== undefined) {
+    expect(manifestFile).toBeDefined();
+    if (blobCall !== undefined && manifestFile !== undefined) {
       expect([...Buffer.from(blobCall.content, 'base64')]).toEqual([
-        ...manifest.files[0].bytes,
+        ...manifestFile.bytes,
       ]);
     }
 
