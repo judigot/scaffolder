@@ -165,7 +165,7 @@ function collectFiles(
       files.push({
         path: filePath,
         content: item.content,
-        mode: '100644',
+        mode: Reflect.get(item, 'mode') === 0o755 ? '100755' : '100644',
         type: 'blob',
         isBinary: item.isBinary,
       });
