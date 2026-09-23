@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { unzipSync } from 'fflate';
 import {
   AgentCreateRepoError,
   createAgentTargetRepository,
@@ -129,6 +130,106 @@ describe('scaffoldToArtifact', () => {
     expect(result.body).toBeInstanceOf(Uint8Array);
     expect(publish).not.toHaveBeenCalled();
     expect(createRepo).not.toHaveBeenCalled();
+  });
+
+  it('applies file selection after full project generation', async () => {
+    const result = await scaffoldToArtifact(
+      {
+        output: 'zip',
+        schemaInfo: validSchemaInfo,
+        project: 'hono-react',
+        files: ['src/**', 'package.json'],
+      },
+      {
+        loadUserFiles: () => createUserFiles(),
+        buildProject: () =>
+          Promise.resolve({
+            structure: [
+              { type: 'file', name: 'package.json', content: '{}' },
+              { type: 'file', name: 'README.md', content: '# app' },
+              {
+                type: 'folder',
+                name: 'src',
+                children: [
+                  { type: 'file', name: 'main.tsx', content: 'export {};' },
+                ],
+              },
+            ],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          }),
+      },
+    );
+
+    expect(result.body).toBeInstanceOf(Uint8Array);
+    if (!(result.body instanceof Uint8Array)) return;
+
+    const extracted = unzipSync(result.body);
+    expect(Object.keys(extracted).sort()).toEqual([
+      'package.json',
+      'src/',
+      'src/main.tsx',
+    ]);
+  });
+
+  it('rejects unmatched selectors with the offending selector', async () => {
+    await expect(
+      scaffoldToArtifact(
+        {
+          output: 'zip',
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+          files: ['missing/**'],
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          buildProject: () =>
+            Promise.resolve({
+              structure: [
+                { type: 'file', name: 'README.md', content: '# app' },
+              ],
+              filesUsingUserEnv: [],
+              filesFailedToFormat: [],
+            }),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'FILE_SELECTOR_NO_MATCH',
+      status: 400,
+      details: { selector: 'missing/**' },
+    });
+  });
+
+  it('validates excluded generated content before applying selection', async () => {
+    await expect(
+      scaffoldToArtifact(
+        {
+          output: 'zip',
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+          files: ['README.md'],
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          buildProject: () =>
+            Promise.resolve({
+              structure: [
+                { type: 'file', name: 'README.md', content: '# app' },
+                {
+                  type: 'file',
+                  name: 'excluded.txt',
+                  content: 'USE_USER_ENV(SECRET)',
+                },
+              ],
+              filesUsingUserEnv: ['excluded.txt'],
+              filesFailedToFormat: [],
+            }),
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: 'USER_ENV_DETECTED',
+      status: 400,
+    });
   });
 
   it('rejects invalid schema before build or GitHub mutation', async () => {
