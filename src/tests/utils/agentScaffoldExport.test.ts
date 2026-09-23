@@ -215,6 +215,69 @@ describe('agent scaffold exports', () => {
     );
   });
 
+  it('preserves empty directories for wildcard recursive selectors in ZIP and shell', () => {
+    const root = mkdtempSync(join(tmpdir(), 'agent-scaffold-wildcard-empty-'));
+    const manifest = createAgentScaffoldManifest([
+      {
+        type: 'folder',
+        name: 'apps',
+        children: [
+          {
+            type: 'folder',
+            name: 'web',
+            children: [
+              { type: 'file', name: 'index.ts', content: 'export {};\n' },
+            ],
+          },
+          { type: 'folder', name: 'api', children: [] },
+        ],
+      },
+    ]);
+    const selected = selectAgentScaffoldManifest(manifest, ['apps/*/**']);
+
+    expect(selected.files.map((file) => file.path)).toEqual([
+      'apps/web/index.ts',
+    ]);
+    expect(selected.directories).toEqual(['apps', 'apps/api', 'apps/web']);
+
+    const archive = join(root, 'selected.zip');
+    const zipDestination = join(root, 'zip-output');
+    const script = join(root, 'selected.sh');
+    const shellDestination = join(root, 'shell-output');
+
+    writeFileSync(archive, createAgentScaffoldZip(selected));
+    mkdirSync(zipDestination);
+    expect(
+      spawnSync('unzip', ['-qq', archive, '-d', zipDestination]).status,
+    ).toBe(0);
+
+    writeFileSync(script, createAgentScaffoldShell(selected));
+    expect(spawnSync('sh', [script, shellDestination]).status).toBe(0);
+
+    for (const destination of [zipDestination, shellDestination]) {
+      expect(lstatSync(join(destination, 'apps/api')).isDirectory()).toBe(true);
+      expect(lstatSync(join(destination, 'apps/web')).isDirectory()).toBe(true);
+      expect(readFileSync(join(destination, 'apps/web/index.ts'), 'utf8')).toBe(
+        'export {};\n',
+      );
+    }
+  });
+
+  it('does not reject wildcard recursive selectors when only empty directories match', () => {
+    const manifest = createAgentScaffoldManifest([
+      {
+        type: 'folder',
+        name: 'apps',
+        children: [{ type: 'folder', name: 'api', children: [] }],
+      },
+    ]);
+
+    const selected = selectAgentScaffoldManifest(manifest, ['apps/*/**']);
+
+    expect(selected.files).toEqual([]);
+    expect(selected.directories).toEqual(['apps', 'apps/api']);
+  });
+
   it('rejects invalid and unmatched selectors with the offending selector', () => {
     const manifest = createAgentScaffoldManifest(fixture());
 
