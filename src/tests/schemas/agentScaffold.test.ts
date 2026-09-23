@@ -38,7 +38,7 @@ describe('agent scaffold output documentation', () => {
       payloads.push(JSON.parse(jsonLines.join('\n')));
     }
 
-    expect(payloads).toHaveLength(3);
+    expect(payloads).toHaveLength(5);
     const outputs: string[] = [];
 
     for (const payload of payloads) {
@@ -64,7 +64,29 @@ describe('agent scaffold output documentation', () => {
       }
     }
 
-    expect(outputs).toEqual(['github_pr', 'zip', 'sh']);
+    expect(outputs).toEqual([
+      'github_pr',
+      'zip',
+      'zip',
+      'sh',
+      'sh',
+    ]);
+
+    expect(
+      payloads.map((payload) =>
+        typeof payload === 'object' &&
+        payload !== null &&
+        'files' in payload
+          ? payload.files
+          : undefined,
+      ),
+    ).toEqual([
+      undefined,
+      undefined,
+      ['src/**', 'README.md'],
+      undefined,
+      ['api/**', 'api-test.sh'],
+    ]);
   });
 });
 
