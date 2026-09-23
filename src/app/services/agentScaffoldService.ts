@@ -7,8 +7,9 @@ import { CREATION_MODES } from '@/constants.ts';
 import type { IFormStore } from '@/useFormStore.ts';
 import { frameworks } from '@/useFormStore.ts';
 import {
+  hasCompactSchema,
   parseAndValidateSchemaInfo,
-  parseCompactSchema,
+  validateSchemaInfoFromResponse,
   validateSchemaInfo,
   type SchemaInfoArray,
 } from '@/utils/schemaInfoValidator.ts';
@@ -65,6 +66,14 @@ import {
   type IParsedProjectReference,
   type IParsedTargetRepo,
 } from '@/utils/parseAgentScaffoldUrls.ts';
+import {
+  AgentScaffoldExportError,
+  agentScaffoldManifestToStructure,
+  createAgentScaffoldManifest,
+  createAgentScaffoldShell,
+  createAgentScaffoldZip,
+  type IAgentScaffoldManifest,
+} from '@/utils/agentScaffoldExport.ts';
 import {
   GitHubDraftPullRequestError,
   publishDraftPullRequest,
@@ -305,11 +314,9 @@ function findBuildMessage(
 
 function resolveSchemaInfo(schemaInfo: unknown): SchemaInfoArray {
   if (typeof schemaInfo === 'string') {
-    const compact = parseCompactSchema(schemaInfo);
-    if (compact !== null) {
-      return compact;
-    }
-    const parsed = parseAndValidateSchemaInfo(schemaInfo);
+    const parsed = hasCompactSchema(schemaInfo)
+      ? validateSchemaInfoFromResponse(schemaInfo)
+      : parseAndValidateSchemaInfo(schemaInfo);
     if (!parsed.success || parsed.data === undefined) {
       throw new AgentScaffoldError('schemaInfo is invalid', {
         status: 400,
@@ -482,30 +489,34 @@ async function createTargetRepoIfRequested(
   }
 }
 
-export async function scaffoldToPullRequest(
+interface IGeneratedAgentScaffold {
+  projectName: string;
+  tables: string[];
+  manifest: IAgentScaffoldManifest;
+  resolvedSha?: string;
+  projectResolvedSha?: string;
+}
+
+export interface IAgentScaffoldArtifactResult {
+  body: Uint8Array | string;
+  contentType: 'application/zip' | 'text/x-shellscript; charset=utf-8';
+  filename: 'scaffold.zip' | 'scaffold.sh';
+  projectName: string;
+  tables: string[];
+  resolvedSha?: string;
+  projectResolvedSha?: string;
+}
+
+async function generateAgentScaffold(
   request: IAgentScaffoldRequest,
-  dependencies: IAgentScaffoldServiceDependencies = {},
-): Promise<IAgentScaffoldResult> {
-  if (request.output !== undefined && request.output !== 'github_pr') {
-    throw new AgentScaffoldError(
-      `${request.output} output is not implemented yet`,
-      { status: 400, code: 'UNSUPPORTED_OUTPUT' },
-    );
-  }
-  if (request.target_repo === undefined) {
-    throw new AgentScaffoldError('target_repo is required for github_pr output', {
-      status: 400,
-      code: 'INVALID_REFERENCE',
-    });
-  }
+  dependencies: IAgentScaffoldServiceDependencies,
+): Promise<IGeneratedAgentScaffold> {
   let projectReference: IParsedProjectReference;
-  let targetRepo: IParsedTargetRepo;
   try {
     projectReference = parseProjectReference(resolveProjectIdentifier(request));
-    targetRepo = parseTargetRepo(request.target_repo);
   } catch (error: unknown) {
     const message =
-      error instanceof Error ? error.message : 'Invalid project or target_repo';
+      error instanceof Error ? error.message : 'Invalid project reference';
     throw new AgentScaffoldError(message, {
       status: 400,
       code: 'INVALID_REFERENCE',
@@ -513,10 +524,7 @@ export async function scaffoldToPullRequest(
   }
 
   const schemaInfo = resolveSchemaInfo(request.schemaInfo);
-  const userFilesResult = await resolveUserFiles(
-    projectReference,
-    dependencies,
-  );
+  const userFilesResult = await resolveUserFiles(projectReference, dependencies);
   const userFiles = userFilesResult.files;
   const projects = getAllProjects(userFiles);
   const project = projects.find(
@@ -546,32 +554,6 @@ export async function scaffoldToPullRequest(
     );
   }
 
-  const randomId =
-    dependencies.randomId ??
-    (() => crypto.randomUUID().replace(/-/g, '').slice(0, 8));
-  const prNumber = resolveTargetedPullNumber(request, targetRepo);
-  const hasExplicitTarget =
-    request.branch !== undefined || prNumber !== undefined;
-  const requestedBranch =
-    request.branch === undefined
-      ? hasExplicitTarget
-        ? undefined
-        : toScaffolderBranchName(project.name, randomId())
-      : ensureScaffolderBranchName(request.branch);
-
-  if (requestedBranch !== undefined) {
-    const branchWithoutPrefix = requestedBranch.replace(/^scaffolder\//, '');
-    if (
-      isProtectedBranchName(requestedBranch, 'main') ||
-      isProtectedBranchName(branchWithoutPrefix, 'main')
-    ) {
-      throw new AgentScaffoldError(
-        `Refusing to write to protected branch "${request.branch ?? requestedBranch}"`,
-        { status: 400, code: 'PROTECTED_BRANCH' },
-      );
-    }
-  }
-
   const recipeContent = findStructureYamlContent(
     projectReference.projectYamlPath,
     userFiles,
@@ -592,6 +574,7 @@ export async function scaffoldToPullRequest(
           templateRepoOverride: request.template_repo,
           loadTemplateFiles: dependencies.loadTemplateFiles,
         };
+
   let buildResult: IBuildProjectFilesResult;
   try {
     buildResult = await buildProject(
@@ -627,6 +610,7 @@ export async function scaffoldToPullRequest(
         details: buildResult.messages,
       });
     }
+
     const conflictMessage = findBuildMessage(
       buildResult.messages,
       SCAFFOLDER_MESSAGE_CODES.TemplateApiConflict,
@@ -638,6 +622,7 @@ export async function scaffoldToPullRequest(
         details: buildResult.messages,
       });
     }
+
     throw new AgentScaffoldError('Project generation failed', {
       status: 400,
       code: 'BUILD_FAILED',
@@ -648,13 +633,121 @@ export async function scaffoldToPullRequest(
   const userEnvDetection = detectUserEnvInStructure(buildResult.structure);
   if (userEnvDetection.hasUserEnv) {
     throw new AgentScaffoldError(
-      'Cannot commit generated files that still contain USE_USER_ENV',
+      'Cannot deliver generated files that still contain USE_USER_ENV',
       {
         status: 400,
         code: 'USER_ENV_DETECTED',
         details: userEnvDetection.locations,
       },
     );
+  }
+
+  let manifest: IAgentScaffoldManifest;
+  try {
+    manifest = createAgentScaffoldManifest(buildResult.structure);
+  } catch (error: unknown) {
+    if (error instanceof AgentScaffoldExportError) {
+      throw new AgentScaffoldError(error.message, {
+        status: 400,
+        code: error.code,
+      });
+    }
+    throw error;
+  }
+
+  return {
+    projectName: project.name,
+    tables: schemaInfo.map((table) => table.tableName),
+    manifest,
+    resolvedSha: templateBase.resolvedSha,
+    projectResolvedSha: userFilesResult.resolvedSha,
+  };
+}
+
+export async function scaffoldToArtifact(
+  request: IAgentScaffoldRequest,
+  dependencies: IAgentScaffoldServiceDependencies = {},
+): Promise<IAgentScaffoldArtifactResult> {
+  if (request.output !== 'zip' && request.output !== 'sh') {
+    throw new AgentScaffoldError('Artifact output must be zip or sh', {
+      status: 400,
+      code: 'UNSUPPORTED_OUTPUT',
+    });
+  }
+
+  const generated = await generateAgentScaffold(request, dependencies);
+  return {
+    body:
+      request.output === 'zip'
+        ? createAgentScaffoldZip(generated.manifest)
+        : createAgentScaffoldShell(generated.manifest),
+    contentType:
+      request.output === 'zip'
+        ? 'application/zip'
+        : 'text/x-shellscript; charset=utf-8',
+    filename: request.output === 'zip' ? 'scaffold.zip' : 'scaffold.sh',
+    projectName: generated.projectName,
+    tables: generated.tables,
+    resolvedSha: generated.resolvedSha,
+    projectResolvedSha: generated.projectResolvedSha,
+  };
+}
+
+export async function scaffoldToPullRequest(
+  request: IAgentScaffoldRequest,
+  dependencies: IAgentScaffoldServiceDependencies = {},
+): Promise<IAgentScaffoldResult> {
+  if (request.output !== undefined && request.output !== 'github_pr') {
+    throw new AgentScaffoldError(
+      `${request.output} output must use artifact delivery`,
+      { status: 400, code: 'UNSUPPORTED_OUTPUT' },
+    );
+  }
+  if (request.target_repo === undefined) {
+    throw new AgentScaffoldError('target_repo is required for github_pr output', {
+      status: 400,
+      code: 'INVALID_REFERENCE',
+    });
+  }
+
+  const generated = await generateAgentScaffold(request, dependencies);
+
+  let targetRepo: IParsedTargetRepo;
+  try {
+    targetRepo = parseTargetRepo(request.target_repo);
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Invalid target_repo';
+    throw new AgentScaffoldError(message, {
+      status: 400,
+      code: 'INVALID_REFERENCE',
+    });
+  }
+
+  const randomId =
+    dependencies.randomId ??
+    (() => crypto.randomUUID().replace(/-/g, '').slice(0, 8));
+  const prNumber = resolveTargetedPullNumber(request, targetRepo);
+  const hasExplicitTarget =
+    request.branch !== undefined || prNumber !== undefined;
+  const requestedBranch =
+    request.branch === undefined
+      ? hasExplicitTarget
+        ? undefined
+        : toScaffolderBranchName(generated.projectName, randomId())
+      : ensureScaffolderBranchName(request.branch);
+
+  if (requestedBranch !== undefined) {
+    const branchWithoutPrefix = requestedBranch.replace(/^scaffolder\//, '');
+    if (
+      isProtectedBranchName(requestedBranch, 'main') ||
+      isProtectedBranchName(branchWithoutPrefix, 'main')
+    ) {
+      throw new AgentScaffoldError(
+        `Refusing to write to protected branch "${request.branch ?? requestedBranch}"`,
+        { status: 400, code: 'PROTECTED_BRANCH' },
+      );
+    }
   }
 
   const repoCreated = await createTargetRepoIfRequested(
@@ -664,22 +757,23 @@ export async function scaffoldToPullRequest(
   );
 
   const draft = request.draft !== false;
-  const prTitle = request.prTitle ?? `Scaffold ${project.name} from schemaInfo`;
+  const prTitle =
+    request.prTitle ?? `Scaffold ${generated.projectName} from schemaInfo`;
   const provenanceLines = [
-    templateBase.resolvedSha === undefined
+    generated.resolvedSha === undefined
       ? undefined
-      : `- Template snapshot: \`${templateBase.resolvedSha}\``,
-    userFilesResult.resolvedSha === undefined
+      : `- Template snapshot: \`${generated.resolvedSha}\``,
+    generated.projectResolvedSha === undefined
       ? undefined
-      : `- Project files snapshot: \`${userFilesResult.resolvedSha}\``,
+      : `- Project files snapshot: \`${generated.projectResolvedSha}\``,
   ].filter((line): line is string => line !== undefined);
   const prBody =
     request.prBody ??
     [
       'Draft pull request generated by Scaffolder.',
       '',
-      `- Project: \`${project.name}\``,
-      `- Tables: ${schemaInfo.map((table) => table.tableName).join(', ')}`,
+      `- Project: \`${generated.projectName}\``,
+      `- Tables: ${generated.tables.join(', ')}`,
       ...provenanceLines,
       '',
       'Review the generated files before merging. This branch was not written to the default branch.',
@@ -708,8 +802,8 @@ export async function scaffoldToPullRequest(
       owner: targetRepo.owner,
       repo: targetRepo.repo,
       branch: requestedBranch,
-      structure: buildResult.structure,
-      commitMessage: `feat: scaffold ${project.name}`,
+      structure: agentScaffoldManifestToStructure(generated.manifest),
+      commitMessage: `feat: scaffold ${generated.projectName}`,
       prTitle,
       prBody,
       draft,
@@ -719,12 +813,12 @@ export async function scaffoldToPullRequest(
 
     return {
       ...published,
-      projectName: project.name,
+      projectName: generated.projectName,
       targetRepo: `${targetRepo.owner}/${targetRepo.repo}`,
-      tables: schemaInfo.map((table) => table.tableName),
+      tables: generated.tables,
       repoCreated,
-      resolvedSha: templateBase.resolvedSha,
-      projectResolvedSha: userFilesResult.resolvedSha,
+      resolvedSha: generated.resolvedSha,
+      projectResolvedSha: generated.projectResolvedSha,
     };
   } catch (error: unknown) {
     if (error instanceof GitHubDraftPullRequestError) {
