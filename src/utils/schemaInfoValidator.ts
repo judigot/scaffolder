@@ -245,11 +245,19 @@ export const schemaInfoArraySchema = z
         const foreignKey = column.foreign_key;
         if (
           foreignKey !== undefined &&
-          !columnsByTable.get(foreignKey.foreign_table_name)?.has(foreignKey.foreign_column_name)
+          !columnsByTable
+            .get(foreignKey.foreign_table_name)
+            ?.has(foreignKey.foreign_column_name)
         ) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            path: [tableIndex, 'columnsInfo', columnIndex, 'foreign_key', 'foreign_column_name'],
+            path: [
+              tableIndex,
+              'columnsInfo',
+              columnIndex,
+              'foreign_key',
+              'foreign_column_name',
+            ],
             message: `Foreign key references non-existent column ${foreignKey.foreign_table_name}.${foreignKey.foreign_column_name}`,
           });
         }
@@ -607,16 +615,27 @@ function parseCompactTable(tableDef: string): SchemaInfo | null {
  * <@@/SCHEMA@@>
  */
 function parseCompactSchemaResult(text: string): IValidationResult {
-  const compactRegex = /<@@SCHEMA@@>([\\s\\S]*?)<@@\\/SCHEMA@@>/;
+  const compactRegex = /<@@SCHEMA@@>([\s\S]*?)<@@\/SCHEMA@@>/;
   const match = compactRegex.exec(text);
   if (match?.[1] === undefined) {
-    return { success: false, errors: [{ path: 'schemaInfo', message: 'Compact schema closing tag is missing or malformed' }] };
+    return {
+      success: false,
+      errors: [
+        {
+          path: 'schemaInfo',
+          message: 'Compact schema closing tag is missing or malformed',
+        },
+      ],
+    };
   }
   const schemaContent = match[1].trim();
   if (schemaContent.length === 0) {
-    return { success: false, errors: [{ path: 'schemaInfo', message: 'Compact schema is empty' }] };
+    return {
+      success: false,
+      errors: [{ path: 'schemaInfo', message: 'Compact schema is empty' }],
+    };
   }
-  const tableLines = schemaContent.split(/\\n/).map((line) => line.trim());
+  const tableLines = schemaContent.split(/\n/).map((line) => line.trim());
   const tables: SchemaInfo[] = [];
   for (let index = 0; index < tableLines.length; index += 1) {
     const line = tableLines[index] ?? '';
