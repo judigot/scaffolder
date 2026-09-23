@@ -244,15 +244,9 @@ describe('publishDraftPullRequest', () => {
     );
 
     expect(createBlob).toHaveBeenCalledTimes(1);
-    const blobCall = blobPayloads[0];
-    const manifestFile = manifest.files[0];
-    expect(blobCall).toBeDefined();
-    expect(manifestFile).toBeDefined();
-    if (blobCall !== undefined && manifestFile !== undefined) {
-      expect([...Buffer.from(blobCall.content, 'base64')]).toEqual([
-        ...manifestFile.bytes,
-      ]);
-    }
+    expect([...Buffer.from(blobPayloads[0].content, 'base64')]).toEqual([
+      ...manifest.files[0].bytes,
+    ]);
 
     expect(createTree).toHaveBeenCalledWith(
       expect.objectContaining({
