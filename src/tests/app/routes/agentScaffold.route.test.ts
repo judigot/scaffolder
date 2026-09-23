@@ -72,7 +72,7 @@ describe('agent scaffold API', () => {
     const app = createAgentScaffoldRouter({
       agentApiKey: 'agent-secret',
       scaffoldArtifact: (_request, context) => {
-        expect(context).toEqual({ auth0UserId: undefined });
+        expect(context).toEqual({ auth0UserId: 'scaffolder-agent' });
         return Promise.resolve({
           body: 'echo ok\\n',
           contentType: 'text/x-shellscript; charset=utf-8',
