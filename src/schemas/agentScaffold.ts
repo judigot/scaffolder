@@ -54,12 +54,30 @@ export const AgentScaffoldRequestSchema = z
   .superRefine((data, ctx) => {
     const output = data.output ?? 'github_pr';
     if (output === 'github_pr' && data.target_repo === undefined) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['target_repo'], message: 'target_repo is required for github_pr output' });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['target_repo'],
+        message: 'target_repo is required for github_pr output',
+      });
     }
     if (output !== 'github_pr') {
-      for (const field of ['target_repo', 'create_repo', 'branch', 'prTitle', 'prBody', 'draft', 'prNumber', 'prUrl'] as const) {
+      const githubOnlyFields = [
+        'target_repo',
+        'create_repo',
+        'branch',
+        'prTitle',
+        'prBody',
+        'draft',
+        'prNumber',
+        'prUrl',
+      ] as const;
+      for (const field of githubOnlyFields) {
         if (data[field] !== undefined) {
-          ctx.addIssue({ code: z.ZodIssueCode.custom, path: [field], message: `${field} is only supported for github_pr output` });
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [field],
+            message: `${field} is only supported for github_pr output`,
+          });
         }
       }
     }
