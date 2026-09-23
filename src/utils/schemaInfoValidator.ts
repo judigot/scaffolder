@@ -195,7 +195,7 @@ const schemaInfoSchema = z
     const seen = new Set<string>();
     table.columnsInfo.forEach((column, index) => {
       if (seen.has(column.column_name)) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['columnsInfo', index, 'column_name'], message: `Duplicate column name: ${column.column_name}` });
+        ctx.addIssue({ code: 'custom', path: ['columnsInfo', index, 'column_name'], message: `Duplicate column name: ${column.column_name}` });
       }
       seen.add(column.column_name);
     });
@@ -222,7 +222,7 @@ export const schemaInfoArraySchema = z
       const tableNames = new Set(tables.map((t) => t.tableName));
       for (const table of tables) {
         for (const col of table.columnsInfo) {
-          if (col.foreign_key) {
+          if (col.foreign_key !== undefined) {
             if (!tableNames.has(col.foreign_key.foreign_table_name)) {
               return false;
             }
@@ -250,7 +250,7 @@ export const schemaInfoArraySchema = z
             ?.has(foreignKey.foreign_column_name)
         ) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             path: [
               tableIndex,
               'columnsInfo',
