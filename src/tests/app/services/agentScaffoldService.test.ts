@@ -3,7 +3,10 @@ import {
   AgentCreateRepoError,
   createAgentTargetRepository,
 } from '@/app/services/agentCreateRepoService.ts';
-import { scaffoldToPullRequest } from '@/app/services/agentScaffoldService.ts';
+import {
+  scaffoldToArtifact,
+  scaffoldToPullRequest,
+} from '@/app/services/agentScaffoldService.ts';
 import { GitHubDraftPullRequestError } from '@/app/services/githubDraftPullRequestService.ts';
 import { GitHubSnapshotError } from '@/utils/resolveGitHubSnapshot.ts';
 import type { IGitHubSnapshotLookup } from '@/utils/resolveGitHubSnapshot.ts';
@@ -99,6 +102,93 @@ function createPublishResult() {
   };
 }
 
+describe('scaffoldToArtifact', () => {
+  it('generates zip without GitHub publication or repository creation', async () => {
+    const publish = vi.fn();
+    const createRepo = vi.fn();
+    const result = await scaffoldToArtifact(
+      {
+        output: 'zip',
+        schemaInfo: validSchemaInfo,
+        project: 'hono-react',
+      },
+      {
+        loadUserFiles: () => createUserFiles(),
+        buildProject: () =>
+          Promise.resolve({
+            structure: [{ type: 'file', name: 'README.md', content: '# app' }],
+            filesUsingUserEnv: [],
+            filesFailedToFormat: [],
+          }),
+        publish,
+        createRepo,
+      },
+    );
+
+    expect(result.contentType).toBe('application/zip');
+    expect(result.body).toBeInstanceOf(Uint8Array);
+    expect(publish).not.toHaveBeenCalled();
+    expect(createRepo).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid schema before build or GitHub mutation', async () => {
+    const buildProject = vi.fn();
+    const publish = vi.fn();
+    const createRepo = vi.fn();
+
+    await expect(
+      scaffoldToArtifact(
+        {
+          output: 'sh',
+          schemaInfo: [],
+          project: 'hono-react',
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          buildProject,
+          publish,
+          createRepo,
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_SCHEMA', status: 400 });
+
+    expect(buildProject).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
+    expect(createRepo).not.toHaveBeenCalled();
+  });
+
+  it('rejects generation failures before producing an artifact or GitHub mutation', async () => {
+    const publish = vi.fn();
+    const createRepo = vi.fn();
+
+    await expect(
+      scaffoldToArtifact(
+        {
+          output: 'sh',
+          schemaInfo: validSchemaInfo,
+          project: 'hono-react',
+        },
+        {
+          loadUserFiles: () => createUserFiles(),
+          buildProject: () =>
+            Promise.resolve({
+              structure: [],
+              filesUsingUserEnv: [],
+              filesFailedToFormat: [],
+              hasErrors: true,
+              messages: [],
+            }),
+          publish,
+          createRepo,
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'BUILD_FAILED', status: 400 });
+
+    expect(publish).not.toHaveBeenCalled();
+    expect(createRepo).not.toHaveBeenCalled();
+  });
+});
+
 describe('scaffoldToPullRequest', () => {
   it('validates schemaInfo, generates files, and publishes a draft PR', async () => {
     const publish = vi.fn(() =>
@@ -114,6 +204,7 @@ describe('scaffoldToPullRequest', () => {
 
     const result = await scaffoldToPullRequest(
       {
+        output: 'github_pr',
         schemaInfo: validSchemaInfo,
         project_url:
           'https://github.com/judigot/scaffolder-files/tree/main/Projects/hono-react',

@@ -12,21 +12,26 @@ const foreignKeyObjectSchema = z.object({
  * Zod schema for validating foreign key references (string format: "table.column")
  * Transforms string format to object format for consistency
  */
-const foreignKeyStringSchema = z.string().transform((val) => {
-  const parts = val.split('.');
-  if (parts.length === 2) {
-    const [tableName, columnName] = parts;
+const foreignKeyStringSchema = z
+  .string()
+  .regex(
+    /^[a-z][a-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)?$/,
+    'Foreign key must be table or table.column',
+  )
+  .transform((val) => {
+    const parts = val.split('.');
+    if (parts.length === 2) {
+      const [tableName, columnName] = parts;
+      return {
+        foreign_table_name: tableName,
+        foreign_column_name: columnName,
+      };
+    }
     return {
-      foreign_table_name: tableName,
-      foreign_column_name: columnName,
+      foreign_table_name: val,
+      foreign_column_name: 'id',
     };
-  }
-  // If it doesn't match "table.column" format, assume it's just the table name with "id" column
-  return {
-    foreign_table_name: val,
-    foreign_column_name: 'id',
-  };
-});
+  });
 
 /**
  * Combined foreign key schema that accepts both formats
@@ -185,7 +190,16 @@ const schemaInfoSchema = z
       return hasIdColumn || hasCompositePrimaryKey;
     },
     { message: "Each table must have an 'id' column or compositePrimaryKey" },
-  );
+  )
+  .superRefine((table, ctx) => {
+    const seen = new Set<string>();
+    table.columnsInfo.forEach((column, index) => {
+      if (seen.has(column.column_name)) {
+        ctx.addIssue({ code: 'custom', path: ['columnsInfo', index, 'column_name'], message: `Duplicate column name: ${column.column_name}` });
+      }
+      seen.add(column.column_name);
+    });
+  });
 
 /**
  * Zod schema for validating the complete schemaInfo array
@@ -208,7 +222,7 @@ export const schemaInfoArraySchema = z
       const tableNames = new Set(tables.map((t) => t.tableName));
       for (const table of tables) {
         for (const col of table.columnsInfo) {
-          if (col.foreign_key) {
+          if (col.foreign_key !== undefined) {
             if (!tableNames.has(col.foreign_key.foreign_table_name)) {
               return false;
             }
@@ -219,6 +233,39 @@ export const schemaInfoArraySchema = z
     },
     { message: 'Foreign key references a non-existent table' },
   )
+  .superRefine((tables, ctx) => {
+    const columnsByTable = new Map(
+      tables.map((table) => [
+        table.tableName,
+        new Set(table.columnsInfo.map((column) => column.column_name)),
+      ]),
+    );
+    tables.forEach((table, tableIndex) => {
+      table.columnsInfo.forEach((column, columnIndex) => {
+        const foreignKey = column.foreign_key;
+        const foreignColumns =
+          foreignKey === undefined
+            ? undefined
+            : columnsByTable.get(foreignKey.foreign_table_name);
+        if (
+          foreignKey !== undefined &&
+          foreignColumns?.has(foreignKey.foreign_column_name) !== true
+        ) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [
+              tableIndex,
+              'columnsInfo',
+              columnIndex,
+              'foreign_key',
+              'foreign_column_name',
+            ],
+            message: `Foreign key references non-existent column ${foreignKey.foreign_table_name}.${foreignKey.foreign_column_name}`,
+          });
+        }
+      });
+    });
+  })
   .refine(
     (tables) => {
       // Validate relationship references point to existing tables
@@ -511,7 +558,7 @@ function parseCompactTable(tableDef: string): SchemaInfo | null {
   for (const colDef of columnDefs) {
     const trimmed = colDef.trim();
     if (trimmed.length === 0) {
-      continue;
+      return null;
     }
     const column = parseCompactColumn(trimmed);
     if (column === null) {
@@ -533,17 +580,18 @@ function parseCompactTable(tableDef: string): SchemaInfo | null {
   for (let i = 1; i < parts.length; i++) {
     const relPart = parts[i];
     if (relPart.length < 2) {
-      continue;
+      return null;
     }
 
     const relType = relPart[0];
-    const relTables = relPart
-      .slice(1)
-      .split(',')
-      .filter((t) => t.length > 0);
+    const relTables = relPart.slice(1).split(',').map((table) => table.trim());
 
-    if (relTables.length === 0) {
-      continue;
+    if (
+      relTables.length === 0 ||
+      relTables.some((table) => table.length === 0) ||
+      !['<', '>', '^', '*'].includes(relType)
+    ) {
+      return null;
     }
 
     if (relType === '<') {
@@ -568,47 +616,62 @@ function parseCompactTable(tableDef: string): SchemaInfo | null {
  * @table2:col1:type,col2:type
  * <@@/SCHEMA@@>
  */
-export function parseCompactSchema(text: string): SchemaInfoArray | null {
-  // Extract compact schema block
+function parseCompactSchemaResult(text: string): IValidationResult {
   const compactRegex = /<@@SCHEMA@@>([\s\S]*?)<@@\/SCHEMA@@>/;
   const match = compactRegex.exec(text);
-
   if (match?.[1] === undefined) {
-    return null;
+    return {
+      success: false,
+      errors: [
+        {
+          path: 'schemaInfo',
+          message: 'Compact schema closing tag is missing or malformed',
+        },
+      ],
+    };
   }
-
   const schemaContent = match[1].trim();
   if (schemaContent.length === 0) {
-    return null;
+    return {
+      success: false,
+      errors: [{ path: 'schemaInfo', message: 'Compact schema is empty' }],
+    };
   }
-
-  // Split by newlines or by @
   const tableLines = schemaContent
-    .split(/\n/)
+    .split(/\r?\n/)
     .map((line) => line.trim())
-    .filter((line) => line.startsWith('@'));
-
-  if (tableLines.length === 0) {
-    return null;
-  }
-
+    .filter((line) => line.length > 0);
   const tables: SchemaInfo[] = [];
-
-  for (const line of tableLines) {
+  for (let index = 0; index < tableLines.length; index += 1) {
+    const line = tableLines[index] ?? '';
+    if (!line.startsWith('@')) {
+      return { success: false, errors: [{ path: `schemaInfo.compact.${String(index)}`, message: 'Compact table definitions must start with @' }] };
+    }
+    const mainPart = line.split('|')[0] ?? '';
+    const colonIndex = mainPart.indexOf(':');
+    const columnsText = colonIndex === -1 ? '' : mainPart.slice(colonIndex + 1);
+    if (columnsText.startsWith(',') || columnsText.endsWith(',') || columnsText.includes(',,')) {
+      return { success: false, errors: [{ path: `schemaInfo.compact.${String(index)}.columns`, message: 'Compact schema contains an empty column entry' }] };
+    }
+    const relationships = line.split('|').slice(1);
+    if (relationships.some((relationship) => {
+      const body = relationship.slice(1);
+      return body === '' || body.startsWith(',') || body.endsWith(',') || body.includes(',,');
+    })) {
+      return { success: false, errors: [{ path: `schemaInfo.compact.${String(index)}.relationships`, message: 'Compact schema contains an empty relationship entry' }] };
+    }
     const table = parseCompactTable(line);
     if (table === null) {
-      return null; // Invalid table format
+      return { success: false, errors: [{ path: `schemaInfo.compact.${String(index)}`, message: 'Invalid compact table, column, or relationship syntax' }] };
     }
     tables.push(table);
   }
+  return validateSchemaInfo(tables);
+}
 
-  // Validate the result
-  const validationResult = schemaInfoArraySchema.safeParse(tables);
-  if (!validationResult.success) {
-    return null;
-  }
-
-  return validationResult.data;
+export function parseCompactSchema(text: string): SchemaInfoArray | null {
+  const result = parseCompactSchemaResult(text);
+  return result.success ? (result.data ?? null) : null;
 }
 
 /**
@@ -620,14 +683,8 @@ export function validateSchemaInfoFromResponse(
 ): IValidationResult & { extracted: boolean } {
   // Try compact format first (saves tokens)
   if (hasCompactSchema(responseText)) {
-    const compactResult = parseCompactSchema(responseText);
-    if (compactResult !== null) {
-      return {
-        success: true,
-        extracted: true,
-        data: compactResult,
-      };
-    }
+    const compactResult = parseCompactSchemaResult(responseText);
+    return { ...compactResult, extracted: true };
   }
 
   // Fall back to JSON format

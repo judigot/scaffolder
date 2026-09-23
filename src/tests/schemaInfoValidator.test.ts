@@ -4,6 +4,7 @@ import {
 	parseAndValidateSchemaInfo,
 	extractSchemaInfoFromResponse,
 	validateSchemaInfoFromResponse,
+	parseCompactSchema,
 } from "@/utils/schemaInfoValidator.ts";
 import { honoReactAgentSchemaInfo } from "@/tests/helpers/honoReactAgentSchema.ts";
 
@@ -591,6 +592,68 @@ describe("schemaInfoValidator", () => {
 				const result = validateSchemaInfo(schema);
 				expect(result.success).toBe(false);
 			});
+		});
+	});
+
+	describe("compact validation regressions", () => {
+		it("rejects duplicate columns with a column path", () => {
+			const result = validateSchemaInfo([{ tableName: "users", columnsInfo: [
+				{ column_name: "id", data_type: "number", is_nullable: "NO", primary_key: true },
+				{ column_name: "id", data_type: "number", is_nullable: "NO" },
+			] }]);
+			expect(result.success).toBe(false);
+			expect(result.errors?.some((error) => error.path.includes("columnsInfo.1.column_name"))).toBe(true);
+		});
+
+		it("rejects foreign keys to a missing target column", () => {
+			const result = validateSchemaInfo([
+				{ tableName: "users", columnsInfo: [{ column_name: "id", data_type: "number", is_nullable: "NO", primary_key: true }] },
+				{ tableName: "posts", columnsInfo: [
+					{ column_name: "id", data_type: "number", is_nullable: "NO", primary_key: true },
+					{ column_name: "user_id", data_type: "number", is_nullable: "NO", foreign_key: { foreign_table_name: "users", foreign_column_name: "missing" } },
+				] },
+			]);
+			expect(result.success).toBe(false);
+			expect(result.errors?.some((error) => error.message.includes("users.missing"))).toBe(true);
+		});
+
+		it("rejects empty compact column and relationship entries", () => {
+			expect(parseCompactSchema("<@@SCHEMA@@>\n@users:id:n#pk,,email:s\n<@@/SCHEMA@@>")).toBeNull();
+			expect(parseCompactSchema("<@@SCHEMA@@>\n@users:id:n#pk|>posts,\n@posts:id:n#pk\n<@@/SCHEMA@@>")).toBeNull();
+		});
+
+		it("preserves compact diagnostics instead of falling back to Invalid JSON", () => {
+			const result = validateSchemaInfoFromResponse("<@@SCHEMA@@>\n@users:id:n#pk,,email:s\n<@@/SCHEMA@@>");
+			expect(result.success).toBe(false);
+			expect(result.errors?.[0]?.path).toContain("schemaInfo.compact");
+			expect(result.errors?.[0]?.message).toContain("empty column");
+			expect(result.errors?.[0]?.message).not.toContain("Invalid JSON");
+		});
+
+		it("preserves valid table.column foreign-key string syntax", () => {
+			const result = validateSchemaInfo([
+				{
+					tableName: "users",
+					columnsInfo: [
+						{ column_name: "id", data_type: "number", is_nullable: "NO", primary_key: true },
+					],
+				},
+				{
+					tableName: "posts",
+					columnsInfo: [
+						{ column_name: "id", data_type: "number", is_nullable: "NO", primary_key: true },
+						{ column_name: "user_id", data_type: "number", is_nullable: "NO", foreign_key: "users.id" },
+					],
+				},
+			]);
+			expect(result.success).toBe(true);
+		});
+
+		it("preserves blank lines in otherwise valid compact schemas", () => {
+			const result = validateSchemaInfoFromResponse(
+				"<@@SCHEMA@@>\n\n@users:id:n#pk,email:s\n\n<@@/SCHEMA@@>",
+			);
+			expect(result.success).toBe(true);
 		});
 	});
 

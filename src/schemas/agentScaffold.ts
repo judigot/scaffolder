@@ -26,10 +26,8 @@ export const AgentScaffoldRequestSchema = z
     project_url: z.string().trim().min(1).optional(),
     // Legacy catalog folder name. Prefer project_url.
     project: z.string().trim().min(1).optional(),
-    target_repo: z
-      .string()
-      .trim()
-      .min(1, { message: 'target_repo is required' }),
+    output: z.enum(['github_pr', 'zip', 'sh']).optional(),
+    target_repo: z.string().trim().min(1).optional(),
     // Pinned GitHub starter. Overrides structure.yaml $BASE / source.
     template_repo: z.string().trim().min(1).optional(),
     // Create target_repo when missing. Private + auto_init. Default false.
@@ -52,6 +50,37 @@ export const AgentScaffoldRequestSchema = z
   .refine(hasProjectIdentifier, {
     path: ['project_url'],
     message: 'project_url is required',
+  })
+  .superRefine((data, ctx) => {
+    const output = data.output ?? 'github_pr';
+    if (output === 'github_pr' && data.target_repo === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['target_repo'],
+        message: 'target_repo is required for github_pr output',
+      });
+    }
+    if (output !== 'github_pr') {
+      const githubOnlyFields = [
+        'target_repo',
+        'create_repo',
+        'branch',
+        'prTitle',
+        'prBody',
+        'draft',
+        'prNumber',
+        'prUrl',
+      ] as const;
+      for (const field of githubOnlyFields) {
+        if (data[field] !== undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [field],
+            message: `${field} is only supported for github_pr output`,
+          });
+        }
+      }
+    }
   })
   .refine(
     (data) => {

@@ -4,7 +4,9 @@ import { redactAgentToken } from '@/app/services/agentGitHubToken.ts';
 import { AgentScaffoldRequestSchema } from '@/schemas/agentScaffold.ts';
 import {
   AgentScaffoldError,
+  scaffoldToArtifact,
   scaffoldToPullRequest,
+  type IAgentScaffoldArtifactResult,
   type IAgentScaffoldResult,
 } from '@/app/services/agentScaffoldService.ts';
 import {
@@ -23,6 +25,10 @@ interface ICreateAgentScaffoldRouterDependencies {
     request: ReturnType<typeof AgentScaffoldRequestSchema.parse>,
     context: { auth0UserId?: string; githubToken?: string },
   ) => Promise<IAgentScaffoldResult>;
+  scaffoldArtifact?: (
+    request: ReturnType<typeof AgentScaffoldRequestSchema.parse>,
+    context: { auth0UserId?: string },
+  ) => Promise<IAgentScaffoldArtifactResult>;
 }
 
 export function createAgentScaffoldRouter(
@@ -41,22 +47,6 @@ export function createAgentScaffoldRouter(
     const authResult = await verifyAuthToken(c.req.header('authorization'));
     if (!authResult.ok) {
       return c.json(authResult.body, authResult.status);
-    }
-
-    const githubToken = c.req.header('x-github-token');
-    if (
-      githubToken !== undefined &&
-      (githubToken.trim() === '' || /\s/.test(githubToken))
-    ) {
-      return c.json(
-        {
-          ok: false,
-          code: 'INVALID_GITHUB_TOKEN',
-          error:
-            'X-GitHub-Token must contain a nonempty token without whitespace.',
-        },
-        400,
-      );
     }
 
     let body: unknown;
@@ -80,7 +70,43 @@ export function createAgentScaffoldRouter(
       );
     }
 
+    const output = parsed.data.output ?? 'github_pr';
+    const githubToken =
+      output === 'github_pr' ? c.req.header('x-github-token') : undefined;
+    if (
+      githubToken !== undefined &&
+      (githubToken.trim() === '' || /\s/.test(githubToken))
+    ) {
+      return c.json(
+        {
+          ok: false,
+          code: 'INVALID_GITHUB_TOKEN',
+          error:
+            'X-GitHub-Token must contain a nonempty token without whitespace.',
+        },
+        400,
+      );
+    }
+
     try {
+      if (output === 'zip' || output === 'sh') {
+        const scaffoldArtifact =
+          dependencies.scaffoldArtifact ?? scaffoldToArtifact;
+        const artifact = await scaffoldArtifact(parsed.data, {
+          auth0UserId: authResult.auth0UserId,
+        });
+        c.header('Content-Type', artifact.contentType);
+        c.header(
+          'Content-Disposition',
+          `attachment; filename="${artifact.filename}"`,
+        );
+        c.header('Cache-Control', 'no-store');
+        if (typeof artifact.body === 'string') {
+          return c.body(artifact.body);
+        }
+        return c.body(Uint8Array.from(artifact.body).buffer);
+      }
+
       const scaffold = dependencies.scaffold ?? scaffoldToPullRequest;
       const result = await scaffold(parsed.data, {
         auth0UserId: authResult.auth0UserId,
