@@ -14,21 +14,23 @@ const foreignKeyObjectSchema = z.object({
  */
 const foreignKeyStringSchema = z
   .string()
-  .refine((val) => val.split('.').length <= 2, 'Foreign key must be table or table.column')
+  .regex(
+    /^[a-z][a-z0-9_]*(?:\\.[A-Za-z][A-Za-z0-9_]*)?$/,
+    'Foreign key must be table or table.column',
+  )
   .transform((val) => {
-  const parts = val.split('.');
-  if (parts.length === 2) {
-    const [tableName, columnName] = parts;
+    const parts = val.split('.');
+    if (parts.length === 2) {
+      const [tableName, columnName] = parts;
+      return {
+        foreign_table_name: tableName,
+        foreign_column_name: columnName,
+      };
+    }
     return {
-      foreign_table_name: tableName,
-      foreign_column_name: columnName,
+      foreign_table_name: val,
+      foreign_column_name: 'id',
     };
-  }
-  // A bare table name is shorthand for its id column.
-  return {
-    foreign_table_name: val,
-    foreign_column_name: 'id',
-  };
   });
 
 /**
@@ -232,13 +234,27 @@ export const schemaInfoArraySchema = z
     { message: 'Foreign key references a non-existent table' },
   )
   .superRefine((tables, ctx) => {
-    const columnsByTable = new Map(tables.map((table) => [table.tableName, new Set(table.columnsInfo.map((column) => column.column_name))]));
-    tables.forEach((table, tableIndex) => table.columnsInfo.forEach((column, columnIndex) => {
-      const foreignKey = column.foreign_key;
-      if (foreignKey && !columnsByTable.get(foreignKey.foreign_table_name)?.has(foreignKey.foreign_column_name)) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: [tableIndex, 'columnsInfo', columnIndex, 'foreign_key', 'foreign_column_name'], message: `Foreign key references non-existent column ${foreignKey.foreign_table_name}.${foreignKey.foreign_column_name}` });
-      }
-    }));
+    const columnsByTable = new Map(
+      tables.map((table) => [
+        table.tableName,
+        new Set(table.columnsInfo.map((column) => column.column_name)),
+      ]),
+    );
+    tables.forEach((table, tableIndex) => {
+      table.columnsInfo.forEach((column, columnIndex) => {
+        const foreignKey = column.foreign_key;
+        if (
+          foreignKey !== undefined &&
+          !columnsByTable.get(foreignKey.foreign_table_name)?.has(foreignKey.foreign_column_name)
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [tableIndex, 'columnsInfo', columnIndex, 'foreign_key', 'foreign_column_name'],
+            message: `Foreign key references non-existent column ${foreignKey.foreign_table_name}.${foreignKey.foreign_column_name}`,
+          });
+        }
+      });
+    });
   })
   .refine(
     (tables) => {
@@ -532,7 +548,7 @@ function parseCompactTable(tableDef: string): SchemaInfo | null {
   for (const colDef of columnDefs) {
     const trimmed = colDef.trim();
     if (trimmed.length === 0) {
-      continue;
+      return null;
     }
     const column = parseCompactColumn(trimmed);
     if (column === null) {
@@ -558,12 +574,13 @@ function parseCompactTable(tableDef: string): SchemaInfo | null {
     }
 
     const relType = relPart[0];
-    const relTables = relPart
-      .slice(1)
-      .split(',')
-      .filter((t) => t.length > 0);
+    const relTables = relPart.slice(1).split(',').map((table) => table.trim());
 
-    if (relTables.length === 0 || !['<', '>', '^', '*'].includes(relType)) {
+    if (
+      relTables.length === 0 ||
+      relTables.some((table) => table.length === 0) ||
+      !['<', '>', '^', '*'].includes(relType)
+    ) {
       return null;
     }
 
@@ -589,44 +606,48 @@ function parseCompactTable(tableDef: string): SchemaInfo | null {
  * @table2:col1:type,col2:type
  * <@@/SCHEMA@@>
  */
-export function parseCompactSchema(text: string): SchemaInfoArray | null {
-  // Extract compact schema block
-  const compactRegex = /<@@SCHEMA@@>([\s\S]*?)<@@\/SCHEMA@@>/;
+function parseCompactSchemaResult(text: string): IValidationResult {
+  const compactRegex = /<@@SCHEMA@@>([\\s\\S]*?)<@@\\/SCHEMA@@>/;
   const match = compactRegex.exec(text);
-
   if (match?.[1] === undefined) {
-    return null;
+    return { success: false, errors: [{ path: 'schemaInfo', message: 'Compact schema closing tag is missing or malformed' }] };
   }
-
   const schemaContent = match[1].trim();
   if (schemaContent.length === 0) {
-    return null;
+    return { success: false, errors: [{ path: 'schemaInfo', message: 'Compact schema is empty' }] };
   }
-
-  // Split by newlines or by @
-  const tableLines = schemaContent.split(/\n/).map((line) => line.trim());
-
-  if (tableLines.length === 0 || tableLines.some((line) => !line.startsWith('@'))) {
-    return null;
-  }
-
+  const tableLines = schemaContent.split(/\\n/).map((line) => line.trim());
   const tables: SchemaInfo[] = [];
-
-  for (const line of tableLines) {
+  for (let index = 0; index < tableLines.length; index += 1) {
+    const line = tableLines[index] ?? '';
+    if (!line.startsWith('@')) {
+      return { success: false, errors: [{ path: `schemaInfo.compact.${String(index)}`, message: 'Compact table definitions must start with @' }] };
+    }
+    const mainPart = line.split('|')[0] ?? '';
+    const colonIndex = mainPart.indexOf(':');
+    const columnsText = colonIndex === -1 ? '' : mainPart.slice(colonIndex + 1);
+    if (columnsText.startsWith(',') || columnsText.endsWith(',') || columnsText.includes(',,')) {
+      return { success: false, errors: [{ path: `schemaInfo.compact.${String(index)}.columns`, message: 'Compact schema contains an empty column entry' }] };
+    }
+    const relationships = line.split('|').slice(1);
+    if (relationships.some((relationship) => {
+      const body = relationship.slice(1);
+      return body === '' || body.startsWith(',') || body.endsWith(',') || body.includes(',,');
+    })) {
+      return { success: false, errors: [{ path: `schemaInfo.compact.${String(index)}.relationships`, message: 'Compact schema contains an empty relationship entry' }] };
+    }
     const table = parseCompactTable(line);
     if (table === null) {
-      return null; // Invalid table format
+      return { success: false, errors: [{ path: `schemaInfo.compact.${String(index)}`, message: 'Invalid compact table, column, or relationship syntax' }] };
     }
     tables.push(table);
   }
+  return validateSchemaInfo(tables);
+}
 
-  // Validate the result
-  const validationResult = schemaInfoArraySchema.safeParse(tables);
-  if (!validationResult.success) {
-    return null;
-  }
-
-  return validationResult.data;
+export function parseCompactSchema(text: string): SchemaInfoArray | null {
+  const result = parseCompactSchemaResult(text);
+  return result.success ? (result.data ?? null) : null;
 }
 
 /**
@@ -638,14 +659,8 @@ export function validateSchemaInfoFromResponse(
 ): IValidationResult & { extracted: boolean } {
   // Try compact format first (saves tokens)
   if (hasCompactSchema(responseText)) {
-    const compactResult = parseCompactSchema(responseText);
-    if (compactResult !== null) {
-      return {
-        success: true,
-        extracted: true,
-        data: compactResult,
-      };
-    }
+    const compactResult = parseCompactSchemaResult(responseText);
+    return { ...compactResult, extracted: true };
   }
 
   // Fall back to JSON format
