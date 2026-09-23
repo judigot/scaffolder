@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   chmodSync,
+  existsSync,
   lstatSync,
   mkdtempSync,
   mkdirSync,
@@ -16,6 +17,8 @@ import type { IFile, IStructure } from '@/components/FileViewer.tsx';
 import {
   AgentScaffoldExportError,
   agentScaffoldManifestToStructure,
+  AGENT_SCAFFOLD_MAX_EXPORT_BYTES,
+  AGENT_SCAFFOLD_MAX_EXPORT_FILES,
   createAgentScaffoldManifest,
   createAgentScaffoldShell,
   createAgentScaffoldZip,
@@ -127,6 +130,49 @@ describe('agent scaffold exports', () => {
     expect(spawnSync('sh', [script, nonempty]).status).not.toBe(0);
     expect(readFileSync(join(nonempty, 'keep.txt'), 'utf8')).toBe('keep');
     expect(spawnSync('sh', [script, symlink]).status).not.toBe(0);
+  });
+
+  it('cleans staging and leaves no destination when extraction fails', () => {
+    const root = mkdtempSync(join(tmpdir(), 'agent-scaffold-'));
+    const script = join(root, 'broken-scaffold.sh');
+    const destination = join(root, 'result');
+    const generated = createAgentScaffoldShell(
+      createAgentScaffoldManifest(fixture()),
+    );
+    const corrupted = generated.replace(
+      /SCAFFOLDER_ZIP\n[A-Za-z0-9+/]/,
+      'SCAFFOLDER_ZIP\n!',
+    );
+    writeFileSync(script, corrupted);
+
+    const result = spawnSync('sh', [script, destination], { encoding: 'utf8' });
+
+    expect(result.status).not.toBe(0);
+    expect(existsSync(destination)).toBe(false);
+  });
+
+  it('enforces file-count and uncompressed-byte limits', () => {
+    const tooMany: IStructure = Array.from(
+      { length: AGENT_SCAFFOLD_MAX_EXPORT_FILES + 1 },
+      (_, index) => ({
+        type: 'file' as const,
+        name: `file-${String(index)}`,
+        content: '',
+      }),
+    );
+    expect(() => createAgentScaffoldManifest(tooMany)).toThrow(
+      /file export limit/,
+    );
+
+    expect(() =>
+      createAgentScaffoldManifest([
+        {
+          type: 'file',
+          name: 'oversized.bin',
+          content: 'x'.repeat(AGENT_SCAFFOLD_MAX_EXPORT_BYTES + 1),
+        },
+      ]),
+    ).toThrow(/byte export limit/);
   });
 
   it('rejects traversal and file-directory collisions', () => {
