@@ -70,7 +70,7 @@ status=$(
     -H 'Content-Type: application/json' \
     -d '{
       "output":"zip",
-      "files":["src/**","package.json","public/**"],
+      "files":["src/**","README.md"],
       "project":"hono-react",
       "schemaInfo":"<@@SCHEMA@@>\n@user:id:u#pk,email:s!u,createdAt:D,updatedAt:D|>session\n@session:id:s#pk,userId:u>user,expiresAt:D|<user\n<@@/SCHEMA@@>"
     }' \
@@ -115,7 +115,7 @@ status=$(
     -H 'Content-Type: application/json' \
     -d '{
       "output":"sh",
-      "files":["src/**",".env.example"],
+      "files":["api/**","README.md"],
       "project":"hono-react",
       "schemaInfo":"<@@SCHEMA@@>\n@user:id:u#pk,email:s!u,createdAt:D,updatedAt:D|>session\n@session:id:s#pk,userId:u>user,expiresAt:D|<user\n<@@/SCHEMA@@>"
     }' \
