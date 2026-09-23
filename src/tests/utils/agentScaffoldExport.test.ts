@@ -89,6 +89,53 @@ describe('agent scaffold exports', () => {
     expect(Object.keys(extracted)).toContain('empty-dir/');
   });
 
+  it('extracts ZIP and scaffold.sh to identical bytes and executable mode', () => {
+    const root = mkdtempSync(join(tmpdir(), 'agent-scaffold-'));
+    const manifest = createAgentScaffoldManifest(fixture());
+    const archive = join(root, 'scaffold.zip');
+    const zipDestination = join(root, 'zip-output');
+    const script = join(root, 'scaffold.sh');
+    const shellDestination = join(root, 'shell-output');
+
+    writeFileSync(archive, createAgentScaffoldZip(manifest));
+    mkdirSync(zipDestination);
+    const unzipResult = spawnSync(
+      'unzip',
+      ['-qq', archive, '-d', zipDestination],
+      { encoding: 'utf8' },
+    );
+    expect(unzipResult.status).toBe(0);
+
+    writeFileSync(script, createAgentScaffoldShell(manifest));
+    const shellResult = spawnSync('sh', [script, shellDestination], {
+      encoding: 'utf8',
+    });
+    expect(shellResult.status).toBe(0);
+
+    for (const relativePath of [
+      '.env.example',
+      'empty.txt',
+      'binary.bin',
+      'dir with spaces/run me.sh',
+      'dir with spaces/$(not-run).txt',
+    ]) {
+      expect([
+        ...readFileSync(join(zipDestination, relativePath)),
+      ]).toEqual([
+        ...readFileSync(join(shellDestination, relativePath)),
+      ]);
+    }
+
+    expect(
+      lstatSync(join(zipDestination, 'dir with spaces', 'run me.sh')).mode &
+        0o777,
+    ).toBe(0o755);
+    expect(
+      lstatSync(join(shellDestination, 'dir with spaces', 'run me.sh')).mode &
+        0o777,
+    ).toBe(0o755);
+  });
+
   it('executes scaffold.sh offline with spaces and shell metacharacters', () => {
     const root = mkdtempSync(join(tmpdir(), 'agent-scaffold-'));
     const script = join(root, 'scaffold.sh');
