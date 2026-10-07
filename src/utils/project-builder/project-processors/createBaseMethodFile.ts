@@ -13,6 +13,7 @@ import type { ISchemaInfo } from '@/interfaces/interfaces.ts';
 import type { ISchemaInfoResult } from '@/utils/getSchemaInfo.ts';
 import { getReplacementsForTable } from '@/utils/project-builder/template-processors/getReplacementsForTable.ts';
 import { parseCommand } from '@/utils/project-builder/utils/parseCommand.ts';
+import { resolvePlaceholderValue } from '@/utils/project-builder/utils/placeholderTransforms.ts';
 
 interface ICreateBaseMethodFileOptions {
   template: string;
@@ -125,6 +126,20 @@ const applyReplacements = (
   replacements: Record<string, string>,
 ): string => {
   let result = input;
+
+  result = result.replace(
+    /<@@>([^<]+)<\/@@>/g,
+    (marker: string, key: string) => {
+      const resolved = resolvePlaceholderValue(key.trim(), replacements);
+      if (resolved !== undefined && typeof resolved.value === 'string') {
+        return resolved.value;
+      }
+      const match = Object.entries(replacements).find(
+        ([name]) => name.toLowerCase() === key.trim().toLowerCase(),
+      );
+      return match?.[1] ?? marker;
+    },
+  );
 
   // Replace all {{placeholder}} patterns with their values
   for (const [key, value] of Object.entries(replacements)) {

@@ -6,9 +6,9 @@ import {
 
 describe('findLeftoverTemplateMarkersInText', () => {
   it('returns an empty list when no template markers remain', () => {
-    expect(findLeftoverTemplateMarkersInText('const email = user.email;')).toEqual(
-      [],
-    );
+    expect(
+      findLeftoverTemplateMarkersInText('const email = user.email;'),
+    ).toEqual([]);
   });
 
   it('collects unresolved placeholders and IF tags', () => {
@@ -21,7 +21,7 @@ describe('findLeftoverTemplateMarkersInText', () => {
 
     expect(findLeftoverTemplateMarkersInText(content)).toEqual([
       '<@@>userPasswordColumnCamelCase</@@>',
-      "<@@IF@@ condition=\"hasUsernameColumn EQUALS 'true'\">",
+      '<@@IF@@ condition="hasUsernameColumn EQUALS \'true\'">',
       '</@@IF@@>',
     ]);
   });
@@ -45,7 +45,10 @@ describe('detectLeftoverTemplateMarkers', () => {
         },
       ]),
     ).toEqual([
-      { filePath: 'use<@@>methodName</@@>.ts', markers: ['<@@>methodName</@@>'] },
+      {
+        filePath: 'use<@@>methodName</@@>.ts',
+        markers: ['<@@>methodName</@@>'],
+      },
       { filePath: '<@@>tableName</@@>', markers: ['<@@>tableName</@@>'] },
       { filePath: '<@@>asset</@@>.png', markers: ['<@@>asset</@@>'] },
     ]);
