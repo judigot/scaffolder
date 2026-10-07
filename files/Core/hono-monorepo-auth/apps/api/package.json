@@ -1,0 +1,41 @@
+{
+  "name": "@monorepo/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "bun --hot src/index.ts",
+    "start": "bun src/index.ts",
+    "start:node": "node src/index.ts",
+    "build": "tsc --noEmit && bun build src/vercel.ts --outfile api/index.js --target node --format esm --minify",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint --config ../../.oxlintrc.json .",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun src/db/migrate.ts",
+    "clean": "rm -rf .turbo .vercel"
+  },
+  "dependencies": {
+    "@better-auth/drizzle-adapter": "1.7.7",
+    "@hono/node-server": "^2.1.1",
+    "@monorepo/api-client": "workspace:*",
+    "better-auth": "1.7.7",
+    "drizzle-orm": "0.45.3",
+    "hono": "^4.13.5",
+    "pg": "^8.16.3",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "@monorepo/typescript-config": "workspace:*",
+    "@types/bun": "^1.4.2",
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.15.6",
+    "drizzle-kit": "0.31.11",
+    "oxlint": "^1.80.0",
+    "typescript": "~6.0.3"
+  }
+}
