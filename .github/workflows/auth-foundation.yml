@@ -1,0 +1,50 @@
+name: Auth foundation regression
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generated-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/checkout@v4
+        with:
+          repository: judigot/template-monorepo
+          ref: 67816e94311090ccdeccd0e7047e72471df0f819
+          path: .auth-starter-checkout
+      - name: Install generator dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Generate a fresh scaffold, never repair output
+        run: |
+          mkdir "$RUNNER_TEMP/auth-starter"
+          git -C .auth-starter-checkout archive HEAD | tar -x -C "$RUNNER_TEMP/auth-starter"
+          bun scripts/generate-auth-foundation.ts "$RUNNER_TEMP/auth-starter" "$RUNNER_TEMP/auth-generated"
+      - name: Check generated application
+        working-directory: ${{ runner.temp }}/auth-generated
+        run: |
+          bun install --frozen-lockfile --ignore-scripts
+          bun run check
+      - name: Verify serverless bundle exports fetch without starting a server
+        working-directory: ${{ runner.temp }}/auth-generated
+        run: |
+          node --input-type=module -e 'const { default: handler } = await import("./apps/api/api/index.js"); if (typeof handler.fetch !== "function") throw new Error("Missing Vercel fetch handler"); const response = await handler.fetch(new Request("http://localhost/api/hello")); if (response.status !== 200) throw new Error("Vercel hello failed");'
+      - name: Browser regression
+        working-directory: ${{ runner.temp }}/auth-generated/e2e
+        run: |
+          bunx playwright install chromium --with-deps
+          bun run test:e2e
+      - name: Verify container still builds the Hono entry point
+        working-directory: ${{ runner.temp }}/auth-generated
+        run: docker build -t scaffolder-auth-foundation .

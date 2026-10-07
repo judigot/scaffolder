@@ -1,0 +1,11 @@
+# Auth-only foundation. Identity tables are owned by Better Auth, not public CRUD.
+$BASE: https://github.com/judigot/template-monorepo/commit/67816e94311090ccdeccd0e7047e72471df0f819
+$SCHEMA_FILTER:
+  - user
+  - session
+  - user.id.data_type=uuid
+  - user.id.primary_key=true
+  - session.userId.data_type=uuid
+  - session.userId.foreign_key
+$USE_CORE:
+  - /Core/hono-monorepo-auth

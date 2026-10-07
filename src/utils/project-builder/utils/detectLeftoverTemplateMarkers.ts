@@ -50,6 +50,11 @@ export function detectLeftoverTemplateMarkers(
     const currentPath =
       basePath === '' ? item.name : `${basePath}/${item.name}`;
 
+    const nameMarkers = findLeftoverTemplateMarkersInText(item.name);
+    if (nameMarkers.length > 0) {
+      locations.push({ filePath: currentPath, markers: nameMarkers });
+    }
+
     if (item.type === 'file') {
       if (item.isBinary === true || isBinaryFileName(item.name)) {
         continue;

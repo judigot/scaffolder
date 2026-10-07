@@ -6,9 +6,9 @@ import {
 
 describe('findLeftoverTemplateMarkersInText', () => {
   it('returns an empty list when no template markers remain', () => {
-    expect(findLeftoverTemplateMarkersInText('const email = user.email;')).toEqual(
-      [],
-    );
+    expect(
+      findLeftoverTemplateMarkersInText('const email = user.email;'),
+    ).toEqual([]);
   });
 
   it('collects unresolved placeholders and IF tags', () => {
@@ -21,13 +21,39 @@ describe('findLeftoverTemplateMarkersInText', () => {
 
     expect(findLeftoverTemplateMarkersInText(content)).toEqual([
       '<@@>userPasswordColumnCamelCase</@@>',
-      "<@@IF@@ condition=\"hasUsernameColumn EQUALS 'true'\">",
+      '<@@IF@@ condition="hasUsernameColumn EQUALS \'true\'">',
       '</@@IF@@>',
     ]);
   });
 });
 
 describe('detectLeftoverTemplateMarkers', () => {
+  it('rejects markers in file and directory names, including binary paths', () => {
+    expect(
+      detectLeftoverTemplateMarkers([
+        { type: 'file', name: 'use<@@>methodName</@@>.ts', content: '' },
+        {
+          type: 'folder',
+          name: '<@@>tableName</@@>',
+          children: [],
+        },
+        {
+          type: 'file',
+          name: '<@@>asset</@@>.png',
+          content: '',
+          isBinary: true,
+        },
+      ]),
+    ).toEqual([
+      {
+        filePath: 'use<@@>methodName</@@>.ts',
+        markers: ['<@@>methodName</@@>'],
+      },
+      { filePath: '<@@>tableName</@@>', markers: ['<@@>tableName</@@>'] },
+      { filePath: '<@@>asset</@@>.png', markers: ['<@@>asset</@@>'] },
+    ]);
+  });
+
   it('reports leftover markers with file paths and skips binaries', () => {
     const locations = detectLeftoverTemplateMarkers([
       {
