@@ -1,4 +1,8 @@
 import convertLocalFilesToIStructure from '@/utils/convertLocalFilesToIStructure.ts';
+import {
+  addScaffoldMetadata,
+  createScaffoldMetadata,
+} from '@/utils/scaffoldMetadata.ts';
 import { createAgentTokenClient } from '@/app/services/agentGitHubToken.ts';
 import { fetchPublicGitHubSource } from '@/app/services/publicSourceFetch.ts';
 import type { IStructure } from '@/components/FileViewer.tsx';
@@ -528,7 +532,10 @@ async function generateAgentScaffold(
   }
 
   const schemaInfo = resolveSchemaInfo(request.schemaInfo);
-  const userFilesResult = await resolveUserFiles(projectReference, dependencies);
+  const userFilesResult = await resolveUserFiles(
+    projectReference,
+    dependencies,
+  );
   const userFiles = userFilesResult.files;
   const projects = getAllProjects(userFiles);
   const project = projects.find(
@@ -648,7 +655,25 @@ async function generateAgentScaffold(
 
   let manifest: IAgentScaffoldManifest;
   try {
-    manifest = createAgentScaffoldManifest(buildResult.structure);
+    const originalManifest = createAgentScaffoldManifest(buildResult.structure);
+    if (originalManifest.files.length === 0) {
+      throw new AgentScaffoldError('Recipe produced no application files', {
+        status: 400,
+        code: 'NO_FILES',
+      });
+    }
+    manifest = createAgentScaffoldManifest(
+      addScaffoldMetadata(
+        buildResult.structure,
+        createScaffoldMetadata(request, {
+          templateSource: request.template_repo ?? recipe.base ?? undefined,
+          templateSha: templateBase.resolvedSha,
+          recipeSha: userFilesResult.resolvedSha,
+          generatorSha:
+            process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA,
+        }),
+      ),
+    );
   } catch (error: unknown) {
     if (error instanceof AgentScaffoldExportError) {
       throw new AgentScaffoldError(error.message, {
@@ -729,10 +754,13 @@ export async function scaffoldToPullRequest(
     );
   }
   if (request.target_repo === undefined) {
-    throw new AgentScaffoldError('target_repo is required for github_pr output', {
-      status: 400,
-      code: 'INVALID_REFERENCE',
-    });
+    throw new AgentScaffoldError(
+      'target_repo is required for github_pr output',
+      {
+        status: 400,
+        code: 'INVALID_REFERENCE',
+      },
+    );
   }
 
   const generated = await generateAgentScaffold(request, dependencies);

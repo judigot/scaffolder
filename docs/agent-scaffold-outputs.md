@@ -5,6 +5,11 @@ Omitting `output` preserves the existing `github_pr` behavior. ZIP and shell
 outputs also accept optional `files: string[]` selectors. Omitting `files`
 delivers the complete generated project.
 
+Full deliveries include a single `.scaffolder/manifest.json` with replay inputs,
+source provenance, public context and initially unrun application checks. See
+[the manifest contract](scaffolding-manifest.md). Partial selectors do not
+automatically include this file.
+
 All modes authenticate to Scaffolder, validate `schemaInfo`, resolve pinned
 project/template sources, run the deterministic builder, reject build errors,
 leftover placeholders and `USE_USER_ENV`, then create one validated file
