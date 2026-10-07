@@ -1,5 +1,10 @@
 import type { IStructure } from '@/components/FileViewer.tsx';
 import type { IFormStore } from '@/useFormStore.ts';
+import type { IAgentScaffoldRequest } from '@/schemas/agentScaffold.ts';
+import {
+  getAllProjects,
+  schemaMatchesFilter,
+} from '@/utils/project-builder/utils/filterCompatibleProjects.ts';
 import { buildProjectFiles } from '@/utils/project-builder/buildProjectFiles.ts';
 import convertLocalFilesToIStructure from '@/utils/convertLocalFilesToIStructure.ts';
 import {
@@ -39,19 +44,52 @@ const form: IFormStore = {
   setDbConnection: () => undefined,
 };
 
-export function generateAuthFoundation(base: IStructure) {
-  const schema = validateSchemaInfo(
-    parseCompactSchema(`<@@SCHEMA@@>
+export const authFoundationSchema = `<@@SCHEMA@@>
 @user:id:u#pk,email:s!u,hashed_password:s,name:s,createdAt:D,updatedAt:D|>session
 @session:id:s#pk,userId:u>user,expiresAt:D|<user
-<@@/SCHEMA@@>`),
+<@@/SCHEMA@@>`;
+
+export function validateLocalAuthFoundationRequest(
+  request: IAgentScaffoldRequest,
+): void {
+  if (
+    request.project_url !== undefined ||
+    request.project !== 'hono-react-monorepo'
+  ) {
+    throw new Error(
+      'Local replay requires the literal bundled project hono-react-monorepo; remote selectors require the API.',
+    );
+  }
+  if (request.files !== undefined) {
+    throw new Error(
+      'Local replay generates the entire project; file selection requires the API.',
+    );
+  }
+}
+
+export function generateAuthFoundation(
+  base: IStructure,
+  input: IAgentScaffoldRequest['schemaInfo'] = authFoundationSchema,
+) {
+  const schema = validateSchemaInfo(
+    typeof input === 'string' ? parseCompactSchema(input) : input,
   );
   if (!schema.success || schema.data === undefined) {
     throw new Error('Invalid authentication fixture');
   }
+  const userFiles = convertLocalFilesToIStructure('files');
+  const project = getAllProjects(userFiles).find(
+    (item) => item.name === 'hono-react-monorepo',
+  );
+  if (
+    project === undefined ||
+    !schemaMatchesFilter(schema.data, project.schemaFilter)
+  ) {
+    throw new Error('Schema does not satisfy hono-react-monorepo filter');
+  }
   return buildProjectFiles(
     '/Projects/hono-react-monorepo/structure.yaml',
-    convertLocalFilesToIStructure('files'),
+    userFiles,
     schema.data,
     form,
     null,

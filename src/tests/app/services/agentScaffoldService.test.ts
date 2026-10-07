@@ -130,6 +130,14 @@ describe('scaffoldToArtifact', () => {
 
     expect(result.contentType).toBe('application/zip');
     expect(result.body).toBeInstanceOf(Uint8Array);
+    if (!(result.body instanceof Uint8Array)) {
+      throw new Error('Expected ZIP bytes');
+    }
+    const metadataBytes = unzipSync(result.body)['.scaffolder/manifest.json'];
+    expect(metadataBytes).toBeDefined();
+    expect(new TextDecoder().decode(metadataBytes)).toContain(
+      '"manifestVersion": 1',
+    );
     expect(publish).not.toHaveBeenCalled();
     expect(createRepo).not.toHaveBeenCalled();
   });

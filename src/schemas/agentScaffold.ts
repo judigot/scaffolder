@@ -2,6 +2,12 @@ import { z } from 'zod';
 import { parsePullRequestUrl } from '@/utils/parseAgentScaffoldUrls.ts';
 import { getAgentScaffoldFileSelectorError } from '@/utils/agentScaffoldFileSelection.ts';
 
+export const ScaffoldContextSchema = z.strictObject({
+  documents: z.array(z.url()).max(20).default([]),
+  unresolvedDecisions: z.array(z.string().max(2000)).max(100).default([]),
+  scope: z.string().max(4000).optional(),
+});
+
 function isGitHubPullRequestUrl(value: string): boolean {
   try {
     parsePullRequestUrl(value);
@@ -22,13 +28,17 @@ function hasProjectIdentifier(data: {
 
 export const AgentScaffoldRequestSchema = z
   .strictObject({
+    context: ScaffoldContextSchema.optional(),
     schemaInfo: z.union([z.array(z.unknown()), z.string().trim().min(1)]),
     // GitHub URL to Projects/<name> in the caller's scaffolder-files repo.
     project_url: z.string().trim().min(1).optional(),
     // Legacy catalog folder name. Prefer project_url.
     project: z.string().trim().min(1).optional(),
     output: z.enum(['github_pr', 'zip', 'sh']).optional(),
-    files: z.array(z.string()).min(1, 'files must contain at least one selector').optional(),
+    files: z
+      .array(z.string())
+      .min(1, 'files must contain at least one selector')
+      .optional(),
     target_repo: z.string().trim().min(1).optional(),
     // Pinned GitHub starter. Overrides structure.yaml $BASE / source.
     template_repo: z.string().trim().min(1).optional(),
@@ -72,7 +82,9 @@ export const AgentScaffoldRequestSchema = z
     if (data.files !== undefined) {
       data.files.forEach((selector, index) => {
         const message = getAgentScaffoldFileSelectorError(selector);
-        if (message === undefined) return;
+        if (message === undefined) {
+          return;
+        }
         ctx.addIssue({
           code: 'custom',
           path: ['files', index],
