@@ -4,13 +4,13 @@ import { execFileSync } from 'node:child_process';
 import {
   generateAuthFoundation,
   authFoundationSchema,
+  validateLocalAuthFoundationRequest,
 } from '../src/tests/helpers/authFoundation.ts';
 import {
   addScaffoldMetadata,
   createScaffoldMetadata,
   scaffoldManifestToRequest,
 } from '../src/utils/scaffoldMetadata.ts';
-import { parseProjectReference } from '../src/utils/parseAgentScaffoldUrls.ts';
 import { parseRecipeDirectives } from '../src/utils/project-builder/utils/recipeDirectives.ts';
 import convertLocalFilesToIStructure from '../src/utils/convertLocalFilesToIStructure.ts';
 import { createFolderStructure } from '../src/utils/createFolderStructure.ts';
@@ -45,22 +45,7 @@ const request =
     : scaffoldManifestToRequest(
         JSON.parse(fs.readFileSync(manifestPath, 'utf8')),
       );
-if (request.project_url !== undefined) {
-  throw new Error(
-    'Remote recipe URLs require the API. This runner uses the local bundled hono-react-monorepo recipe.',
-  );
-}
-if (
-  parseProjectReference(request.project_url ?? request.project ?? '')
-    .projectName !== 'hono-react-monorepo'
-) {
-  throw new Error('This local runner only supports hono-react-monorepo');
-}
-if (request.files !== undefined) {
-  throw new Error(
-    'This local runner generates the entire project; file selection requires the API',
-  );
-}
+validateLocalAuthFoundationRequest(request);
 const result = await generateAuthFoundation(
   convertLocalFilesToIStructure(baseDirectory),
   request.schemaInfo,

@@ -49,6 +49,24 @@ export const authFoundationSchema = `<@@SCHEMA@@>
 @session:id:s#pk,userId:u>user,expiresAt:D|<user
 <@@/SCHEMA@@>`;
 
+export function validateLocalAuthFoundationRequest(
+  request: IAgentScaffoldRequest,
+): void {
+  if (
+    request.project_url !== undefined ||
+    request.project !== 'hono-react-monorepo'
+  ) {
+    throw new Error(
+      'Local replay requires the literal bundled project hono-react-monorepo; remote selectors require the API.',
+    );
+  }
+  if (request.files !== undefined) {
+    throw new Error(
+      'Local replay generates the entire project; file selection requires the API.',
+    );
+  }
+}
+
 export function generateAuthFoundation(
   base: IStructure,
   input: IAgentScaffoldRequest['schemaInfo'] = authFoundationSchema,

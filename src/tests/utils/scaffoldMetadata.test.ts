@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AgentScaffoldRequestSchema } from '@/schemas/agentScaffold.ts';
+import { validateLocalAuthFoundationRequest } from '@/tests/helpers/authFoundation.ts';
 import {
   addScaffoldMetadata,
   createScaffoldMetadata,
@@ -13,6 +14,19 @@ const request = {
 };
 
 describe('single-file scaffolding metadata', () => {
+  it('rejects remote local-replay selectors in either request field', () => {
+    const url =
+      'https://github.com/judigot/scaffolder-files/tree/main/Projects/hono-react-monorepo';
+    expect(() => {
+      validateLocalAuthFoundationRequest({ ...request, project: url });
+    }).toThrow();
+    expect(() => {
+      validateLocalAuthFoundationRequest({ ...request, project_url: url });
+    }).toThrow();
+    expect(() => {
+      validateLocalAuthFoundationRequest(request);
+    }).not.toThrow();
+  });
   it('replays context without treating stale verification as new evidence', () => {
     const metadata = createScaffoldMetadata(request, {});
     const replay = scaffoldManifestToRequest({
