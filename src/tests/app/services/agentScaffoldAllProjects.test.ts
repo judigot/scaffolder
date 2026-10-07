@@ -114,7 +114,9 @@ function schemaForProject(
   projectName: string,
 ): ReturnType<typeof parseCompactSchema> {
   const compact =
-    projectName === 'hono-react' || projectName === 'App Generator - Next.js'
+    projectName === 'hono-react' ||
+    projectName === 'hono-react-monorepo' ||
+    projectName === 'App Generator - Next.js'
       ? HONO_REACT_WITH_PASSWORD_SCHEMA
       : GENERIC_COMPACT_SCHEMA;
   return parseCompactSchema(compact);
@@ -137,6 +139,7 @@ describe('agent-scaffold generate for every current project', () => {
         'App Generator - Spring Boot',
         'App Generator - Template - Frontend',
         'hono-react',
+        'hono-react-monorepo',
         'template-monorepo',
         'ORM Schema - Knex',
         'ORM Schema - Kysely',
@@ -179,6 +182,13 @@ describe('agent-scaffold generate for every current project', () => {
           parsedSchema,
           mockFormData,
           null,
+          projectName === 'hono-react-monorepo'
+            ? {
+                remoteBaseLayer: [
+                  createFile('package.json', '{"private":true}'),
+                ],
+              }
+            : undefined,
         );
 
         const leftovers = detectLeftoverTemplateMarkers(result.structure);

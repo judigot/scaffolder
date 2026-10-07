@@ -619,6 +619,9 @@ jobs:
           DB_PASS: scaffolder123
         run: ./scripts/test-golden-frameworks "${{ matrix.app }}"
 
+  auth-foundation:
+    uses: ./.github/workflows/auth-foundation.yml
+
   gate:
     name: PR Gate
     if: always()
@@ -630,6 +633,7 @@ jobs:
       - vitest
       - api-hello
       - golden
+      - auth-foundation
     runs-on: ubuntu-latest
     steps:
       - name: Require agentic PR checks

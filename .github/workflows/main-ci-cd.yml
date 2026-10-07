@@ -32,6 +32,9 @@ jobs:
   api-hello:
     uses: ./.github/workflows/api-hello-check.yml
 
+  auth-foundation:
+    uses: ./.github/workflows/auth-foundation.yml
+
   deploy:
     name: Deploy to Vercel production
     needs:
@@ -41,6 +44,7 @@ jobs:
       - test-playwright
       - golden-frameworks
       - api-hello
+      - auth-foundation
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 75

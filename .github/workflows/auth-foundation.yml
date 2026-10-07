@@ -1,23 +1,7 @@
 name: Auth foundation regression
 
 on:
-  pull_request:
-    paths:
-      - files/Core/hono-monorepo-auth/**
-      - files/Projects/hono-react-monorepo/**
-      - src/utils/project-builder/**
-      - src/tests/helpers/authFoundation.ts
-      - scripts/generate-auth-foundation.ts
-      - .github/workflows/auth-foundation.yml
-  push:
-    branches: [main]
-    paths:
-      - files/Core/hono-monorepo-auth/**
-      - files/Projects/hono-react-monorepo/**
-      - src/utils/project-builder/**
-      - src/tests/helpers/authFoundation.ts
-      - scripts/generate-auth-foundation.ts
-      - .github/workflows/auth-foundation.yml
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -54,7 +38,8 @@ jobs:
           bun run check
       - name: Verify serverless bundle exports fetch without starting a server
         working-directory: ${{ runner.temp }}/auth-generated
-        run: node --input-type=module -e 'const { default: handler } = await import("./apps/api/api/index.js"); if (typeof handler.fetch !== "function") throw new Error("Missing Vercel fetch handler"); const response = await handler.fetch(new Request("http://localhost/api/hello")); if (response.status !== 200) throw new Error("Vercel hello failed");'
+        run: |
+          node --input-type=module -e 'const { default: handler } = await import("./apps/api/api/index.js"); if (typeof handler.fetch !== "function") throw new Error("Missing Vercel fetch handler"); const response = await handler.fetch(new Request("http://localhost/api/hello")); if (response.status !== 200) throw new Error("Vercel hello failed");'
       - name: Browser regression
         working-directory: ${{ runner.temp }}/auth-generated/e2e
         run: |

@@ -4,6 +4,11 @@ Recipe: `Projects/hono-react-monorepo`. Use it with `judigot/template-monorepo`.
 It layers authentication into the existing Hono API without replacing Vite,
 Next.js, shared packages, CI, Docker, or the runtime/Vercel adapters.
 
+The default starter and shipped lockfile are a tested snapshot at `67816e9`.
+Update that snapshot, its regression checkout and the lockfile together when
+upgrading the starter. A request-level `template_repo` overrides the snapshot;
+any alternative or newer starter must pass the same fresh-output checks.
+
 This is deliberately an auth-only recipe, not a generic domain CRUD generator.
 The input must contain UUID `user.id` and UUID `session.userId` referencing it.
 Better Auth owns the complete user/session/account/verification schema; legacy
