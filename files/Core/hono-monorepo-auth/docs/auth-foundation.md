@@ -4,6 +4,13 @@ Recipe: `Projects/hono-react-monorepo`. Use it with `judigot/template-monorepo`.
 It layers authentication into the existing Hono API without replacing Vite,
 Next.js, shared packages, CI, Docker, or the runtime/Vercel adapters.
 
+Vercel uses its native Hono framework: `src/app.ts` default-exports the same app
+used by the named Node/Bun adapters, and no rewrite collapses `/api/*` paths.
+The API declares standard Web API libraries explicitly for platform compilation
+and rewrites relative TypeScript imports to JavaScript in the emitted Lambda.
+The bundled `src/vercel.ts` adapter remains available. Scaffolder CI tests both
+that bundle and the pinned native Vercel Hono builder on fresh generated output.
+
 The default starter and shipped lockfile are a tested snapshot at `67816e9`.
 Update that snapshot, its regression checkout and the lockfile together when
 upgrading the starter. A request-level `template_repo` overrides the snapshot;

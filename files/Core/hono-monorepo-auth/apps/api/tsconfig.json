@@ -2,6 +2,7 @@
   "extends": "@monorepo/typescript-config/api.json",
   "compilerOptions": {
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "rewriteRelativeImportExtensions": true,
     "types": ["node", "bun"]
   },
   "include": ["src", "test", "drizzle.config.ts"]

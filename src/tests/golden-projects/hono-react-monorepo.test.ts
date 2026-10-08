@@ -79,7 +79,10 @@ describe('Hono monorepo auth foundation', () => {
     expect(
       JSON.parse(files.get('apps/api/tsconfig.json') ?? '{}'),
     ).toMatchObject({
-      compilerOptions: { lib: ['ES2023', 'DOM', 'DOM.Iterable'] },
+      compilerOptions: {
+        lib: ['ES2023', 'DOM', 'DOM.Iterable'],
+        rewriteRelativeImportExtensions: true,
+      },
     });
     expect(JSON.parse(files.get('apps/api/vercel.json') ?? '{}')).toEqual({
       $schema: 'https://openapi.vercel.sh/vercel.json',

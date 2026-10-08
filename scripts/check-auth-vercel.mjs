@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { pathToFileURL } from 'node:url';
-import { FileFsRef } from '@vercel/build-utils';
+import { download, FileFsRef } from '@vercel/build-utils';
 import { build } from '@vercel/hono';
 
 const [directory] = process.argv.slice(2);
@@ -34,7 +35,15 @@ const result = await build({
   meta: { isDev: true },
 });
 assert.equal(result.output.type, 'Lambda');
-assert.equal(result.output.handler, 'src/app.js');
+assert.equal(result.output.handler, 'apps/api/src/app.js');
+assert.deepEqual(result.routes, [
+  { handle: 'filesystem' },
+  {
+    src: '/(.*)',
+    dest: '/',
+    transforms: [{ type: 'request.path', op: 'set', args: '/$1' }],
+  },
+]);
 const vercelConfig = JSON.parse(
   fs.readFileSync(path.join(workPath, 'vercel.json'), 'utf8'),
 );
@@ -61,6 +70,25 @@ assert.equal(
   (await app.fetch(new Request('http://localhost/api/not-found'))).status,
   404,
 );
-console.log(
+console.error(
   'Native Vercel Hono compilation, default export, and API paths passed',
 );
+const artifactDirectory = fs.mkdtempSync(
+  path.join(os.tmpdir(), 'auth-vercel-artifact-'),
+);
+try {
+  await download(result.output.files, artifactDirectory, {});
+  const { default: emittedApp } = await import(
+    pathToFileURL(path.join(artifactDirectory, result.output.handler)).href
+  );
+  for (const route of ['/api/hello', '/api/health']) {
+    assert.equal(
+      (await emittedApp.fetch(new Request(`http://localhost${route}`))).status,
+      200,
+      `Emitted Lambda ${route}`,
+    );
+  }
+  console.error('Emitted native Lambda imports and fetch passed');
+} finally {
+  fs.rmSync(artifactDirectory, { recursive: true, force: true });
+}
