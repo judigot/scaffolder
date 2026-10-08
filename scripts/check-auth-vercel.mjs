@@ -48,6 +48,13 @@ const vercelConfig = JSON.parse(
   fs.readFileSync(path.join(workPath, 'vercel.json'), 'utf8'),
 );
 assert.equal(vercelConfig.framework, 'hono');
+assert(
+  fs
+    .readFileSync(path.join(workPath, '.vercelignore'), 'utf8')
+    .split('\n')
+    .includes('api/'),
+  'Do not publish the legacy API directory alongside native Hono routing',
+);
 assert.equal(
   vercelConfig.rewrites,
   undefined,

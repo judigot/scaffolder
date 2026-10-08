@@ -1,0 +1,3 @@
+# Native Hono owns routing. Do not discover the legacy bundled API entry as
+# a second file-system Function that shadows /api/*.
+api/

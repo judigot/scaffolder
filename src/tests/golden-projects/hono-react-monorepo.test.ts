@@ -76,6 +76,7 @@ describe('Hono monorepo auth foundation', () => {
     expect(files.get('apps/nextjs/package.json')).toBe('{}');
     expect(files.get('apps/api/src/auth/index.ts')).toContain('betterAuth');
     expect(files.get('apps/api/src/app.ts')).toContain('export default app;');
+    expect(files.get('apps/api/.vercelignore')).toContain('api/');
     expect(
       JSON.parse(files.get('apps/api/tsconfig.json') ?? '{}'),
     ).toMatchObject({

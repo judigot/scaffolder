@@ -10,6 +10,8 @@ The API declares standard Web API libraries explicitly for platform compilation
 and rewrites relative TypeScript imports to JavaScript in the emitted Lambda.
 The bundled `src/vercel.ts` adapter remains available. Scaffolder CI tests both
 that bundle and the pinned native Vercel Hono builder on fresh generated output.
+The API's `.vercelignore` excludes the legacy `api/` bundle from native Function
+discovery so that its file-system routes do not shadow Hono's `/api/*` routes.
 
 The default starter and shipped lockfile are a tested snapshot at `67816e9`.
 Update that snapshot, its regression checkout and the lockfile together when
