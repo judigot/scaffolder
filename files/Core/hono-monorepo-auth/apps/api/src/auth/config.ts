@@ -3,6 +3,7 @@ import { z } from 'zod';
 const AuthEnvironment = z.object({
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.url(),
+  BETTER_AUTH_API_KEY: z.string().trim().min(1).optional(),
   CORS_ORIGINS: z.string().optional(),
   NODE_ENV: z.string().optional(),
 });
@@ -11,6 +12,7 @@ export interface IAuthConfig {
   secret: string;
   baseURL: string;
   trustedOrigins: string[];
+  dashboardApiKey?: string;
 }
 
 export function loadAuthConfig(
@@ -37,5 +39,6 @@ export function loadAuthConfig(
     secret: env.BETTER_AUTH_SECRET,
     baseURL: baseURL.origin,
     trustedOrigins: origins,
+    dashboardApiKey: env.BETTER_AUTH_API_KEY,
   };
 }

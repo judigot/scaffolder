@@ -133,6 +133,9 @@
     "@ai-sdk/gateway": "4.0.87"
   },
   "devDependencies": {
+    "ignore": "7.0.5",
+    "@vercel/build-utils": "14.14.0",
+    "@vercel/hono": "12.0.0",
     "@changesets/cli": "^2.27.9",
     "@dotenvx/dotenvx": "^1.52.0",
     "@eslint/compat": "^2.0.0",

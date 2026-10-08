@@ -75,6 +75,35 @@ describe('Hono monorepo auth foundation', () => {
     expect(files.get('apps/vite/package.json')).toBe('{}');
     expect(files.get('apps/nextjs/package.json')).toBe('{}');
     expect(files.get('apps/api/src/auth/index.ts')).toContain('betterAuth');
+    expect(files.get('apps/api/src/auth/index.ts')).toContain(
+      '@better-auth/infra',
+    );
+    expect(files.get('apps/api/src/auth/index.ts')).toContain('dash(');
+    expect(
+      JSON.parse(files.get('apps/api/package.json') ?? '{}'),
+    ).toMatchObject({
+      dependencies: { '@better-auth/infra': '0.4.15' },
+    });
+    expect(files.get('apps/api/.env.example')).toContain(
+      'BETTER_AUTH_API_KEY=',
+    );
+    expect(files.get('apps/api/test/dashboard.test.ts')).toContain(
+      '/auth/dash/validate',
+    );
+    expect(files.get('apps/api/src/app.ts')).toContain('export default app;');
+    expect(files.get('apps/api/.vercelignore')).toContain('/apps/api/api/');
+    expect(
+      JSON.parse(files.get('apps/api/tsconfig.json') ?? '{}'),
+    ).toMatchObject({
+      compilerOptions: {
+        lib: ['ES2023', 'DOM', 'DOM.Iterable'],
+        rewriteRelativeImportExtensions: true,
+      },
+    });
+    expect(JSON.parse(files.get('apps/api/vercel.json') ?? '{}')).toEqual({
+      $schema: 'https://openapi.vercel.sh/vercel.json',
+      framework: 'hono',
+    });
     const schema = files.get('apps/api/src/db/schema.ts') ?? '';
     for (const field of ['emailVerified', 'token', 'account', 'verification']) {
       expect(schema).toContain(field);

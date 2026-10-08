@@ -40,6 +40,8 @@ jobs:
         working-directory: ${{ runner.temp }}/auth-generated
         run: |
           node --input-type=module -e 'const { default: handler } = await import("./apps/api/api/index.js"); if (typeof handler.fetch !== "function") throw new Error("Missing Vercel fetch handler"); const response = await handler.fetch(new Request("http://localhost/api/hello")); if (response.status !== 200) throw new Error("Vercel hello failed");'
+      - name: Verify native Vercel Hono compilation and routing
+        run: node scripts/check-auth-vercel.mjs "$RUNNER_TEMP/auth-generated"
       - name: Browser regression
         working-directory: ${{ runner.temp }}/auth-generated/e2e
         run: |

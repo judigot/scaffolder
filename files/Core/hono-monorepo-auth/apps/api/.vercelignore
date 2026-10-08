@@ -1,0 +1,5 @@
+# Native Hono owns routing. Do not discover the legacy bundled API entry as
+# a second file-system Function that shadows /api/*.
+# Anchor both project-local CLI and repository-root Git deployment paths.
+/api/
+/apps/api/api/

@@ -66,3 +66,6 @@ export function createApp(authProvider: typeof getAuth = getAuth): Hono {
 }
 
 export const app = createApp();
+
+// Native Vercel Hono discovery uses this export; Node/Bun adapters use the named app.
+export default app;
