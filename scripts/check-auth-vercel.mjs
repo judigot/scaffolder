@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { pathToFileURL } from 'node:url';
-import { download, FileFsRef, getIgnoreFilter } from '@vercel/build-utils';
+import { download, FileFsRef } from '@vercel/build-utils';
+import ignore from 'ignore';
 import { build } from '@vercel/hono';
 
 const [directory] = process.argv.slice(2);
@@ -14,19 +15,25 @@ assert(
 const repoRootPath = path.resolve(directory);
 const workPath = path.join(repoRootPath, 'apps/api');
 // Vercel Git discovery evaluates project ignore rules against repository paths;
-// a bare api/ also matches apps/api itself. Exercise the real filter in both layouts.
-const gitIgnored = await getIgnoreFilter(repoRootPath, 'apps/api');
-assert.equal(gitIgnored('apps/api/api/index.js'), true);
+// a bare api/ also matches apps/api itself. Use the same ignore engine as Vercel
+// with the actual generated rules, and exercise both path layouts.
+const deploymentIgnored = ignore().add(
+  fs.readFileSync(path.join(workPath, '.vercelignore'), 'utf8'),
+);
+assert.equal(deploymentIgnored.ignores('apps/api/api/index.js'), true);
 for (const file of [
   'apps/api/package.json',
   'apps/api/src/app.ts',
   'apps/api/src/auth/index.ts',
 ]) {
-  assert.equal(gitIgnored(file), false, `Git deployment must retain ${file}`);
+  assert.equal(
+    deploymentIgnored.ignores(file),
+    false,
+    `Git deployment must retain ${file}`,
+  );
 }
-const cliIgnored = await getIgnoreFilter(workPath);
-assert.equal(cliIgnored('api/index.js'), true);
-assert.equal(cliIgnored('src/app.ts'), false);
+assert.equal(deploymentIgnored.ignores('api/index.js'), true);
+assert.equal(deploymentIgnored.ignores('src/app.ts'), false);
 // This is the same second compilation performed by Vercel CLI 62.1.0.
 // Dependencies and the ordinary build must already have passed. No deployment,
 // credentials, project linking, or environment downloads are needed.
