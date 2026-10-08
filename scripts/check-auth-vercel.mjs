@@ -52,7 +52,7 @@ assert(
   fs
     .readFileSync(path.join(workPath, '.vercelignore'), 'utf8')
     .split('\n')
-    .includes('api/'),
+    .includes('/apps/api/api/'),
   'Do not publish the legacy API directory alongside native Hono routing',
 );
 assert.equal(
