@@ -30,6 +30,40 @@ at least 32 characters) and exact `CORS_ORIGINS`. Production requires HTTPS.
 Run `bun run --cwd apps/api db:migrate` before serving authentication requests.
 Never run migrations automatically on server startup or serverless requests.
 
+## Optional Better Auth Infrastructure dashboard
+
+The recipe includes `@better-auth/infra` and enables `dash()` only when the
+server environment supplies a nonempty `BETTER_AUTH_API_KEY`. This optional
+secret is separate from `BETTER_AUTH_SECRET`; core self-hosted authentication
+still works without the dashboard key. Never store either key in the manifest,
+source files or frontend environment variables.
+
+Enabling `dash()` connects authorized hosted-dashboard administrators to user
+and session management and sends identity/session event data to Better Auth
+Infrastructure, including user identifiers, profile/email information and
+available request-location metadata. Confirm this processing fits the product's
+privacy requirements. Leaving activity tracking disabled does not disable event
+telemetry; omit the infrastructure key to leave this entire integration off.
+
+For Vercel, add the dashboard key as a sensitive environment variable on the
+API project for the intended environment, then redeploy the generated revision.
+A GitHub repository secret alone does not configure Vercel. Set the required
+auth/database variables and apply migrations before testing authentication.
+In Better Auth's Connect Your App form, use the stable API origin without a
+trailing slash and the separate path `/api/auth` (not a double slash). The
+configured `BETTER_AUTH_URL` must match that origin. Protected deployments need
+an explicitly approved access mechanism; do not disable protection just to
+connect. Ownership verification is served at `/api/auth/dash/validate` and
+requires Better Auth's signed authorization; an anonymous request returns 401.
+
+Activity tracking, managed directory sync and Sentinel are not enabled. This
+integration does not add those plugins' schema fields or product features.
+Fresh-output tests cover configured/unconfigured behavior, signed ownership
+validation, invalid tokens and the configured database-auth lifecycle. Hosted
+requests are mocked; tests need no production keys or calls to the real service.
+After deployment, retry ownership verification in Better Auth's dashboard;
+local tests alone cannot prove that the real project key and deployment connect.
+
 Routes: `/api/auth/*` is handled by Better Auth, and `/api/me` requires a valid
 session and returns only public user fields. There are no user/session CRUD
 routes. Email/password signup requires a 12-character password. Email delivery,

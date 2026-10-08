@@ -1,4 +1,5 @@
 import { drizzleAdapter } from '@better-auth/drizzle-adapter';
+import { dash } from '@better-auth/infra';
 import { betterAuth } from 'better-auth';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
@@ -19,6 +20,10 @@ export function createAuth(
     emailAndPassword: { enabled: true, minPasswordLength: 12 },
     advanced: { database: { generateId: 'uuid' } },
     rateLimit: { enabled: true, storage: 'database' },
+    plugins:
+      config.dashboardApiKey === undefined
+        ? []
+        : [dash({ apiKey: config.dashboardApiKey })],
   });
 }
 
