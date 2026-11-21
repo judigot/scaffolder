@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { z } from 'zod';
 import { WorkspaceVariablesPanel } from '@/components/AI/WorkspaceVariablesPanel.tsx';
 import CustomModal from '@/components/Modal/base/CustomModal.tsx';
@@ -157,14 +157,14 @@ function InfraPassphraseModal({
   const [isVerifying, setIsVerifying] = useState(false);
   const verifyingRef = useRef(false);
 
-  const close = () => {
+  const close = useCallback(() => {
     if (verifyingRef.current) {
       return;
     }
     setPassphrase('');
     setError(null);
     onClose();
-  };
+  }, [onClose]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
