@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { z } from 'zod';
 import { WorkspaceVariablesPanel } from '@/components/AI/WorkspaceVariablesPanel.tsx';
 import CustomModal from '@/components/Modal/base/CustomModal.tsx';
@@ -33,6 +33,7 @@ import { useUserProfileStore } from '@/useUserProfileStore.ts';
 import { hasEncryptedInfraValues } from '@/utils/decryptUserMetadata.ts';
 import { getApiUrl } from '@/utils/getApiUrl.ts';
 import { isRecord } from '@/utils/typeGuards.ts';
+import { verifyInfraVaultPassphrase } from '@/utils/verifyInfraVaultPassphrase.ts';
 
 const WORKSPACE_MODE_OPTIONS = [
   {
@@ -128,12 +129,118 @@ const parseInfraCredentials = (
 
 export type { IInfraCredentials };
 
+interface IInfraPassphraseModalProps {
+  isOpen: boolean;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  userId: string | null;
+  userMetadata: Record<string, unknown> | null;
+  onClose: () => void;
+  onConfirmed: () => void;
+}
+
+function InfraPassphraseModal({
+  isOpen,
+  title,
+  description,
+  confirmLabel,
+  userId,
+  userMetadata,
+  onClose,
+  onConfirmed,
+}: IInfraPassphraseModalProps) {
+  const formId = useId();
+  const inputId = useId();
+  const [passphrase, setPassphrase] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const verifyingRef = useRef(false);
+
+  const close = () => {
+    if (verifyingRef.current) {
+      return;
+    }
+    setPassphrase('');
+    setError(null);
+    onClose();
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (verifyingRef.current || !isOpen || passphrase === '') {
+      return;
+    }
+
+    verifyingRef.current = true;
+    setIsVerifying(true);
+    setError(null);
+    try {
+      await verifyInfraVaultPassphrase(userMetadata, userId, passphrase);
+      onConfirmed();
+      setPassphrase('');
+      onClose();
+    } catch (verificationError: unknown) {
+      setError(
+        verificationError instanceof Error
+          ? verificationError.message
+          : 'Unable to verify the vault passphrase.',
+      );
+    } finally {
+      verifyingRef.current = false;
+      setIsVerifying(false);
+    }
+  };
+
+  return (
+    <CustomModal isOpen={isOpen} title={title} onClose={close} size="small"
+      footer={
+        <div className="flex gap-3">
+          <button type="button" className="btn-secondary flex-1"
+            onClick={close} disabled={isVerifying}>
+            Cancel
+          </button>
+          <button type="submit" form={formId} className="btn-danger flex-1"
+            disabled={isVerifying || passphrase === ''}>
+            {isVerifying ? 'Verifying...' : confirmLabel}
+          </button>
+        </div>
+      }>
+      <form id={formId} onSubmit={(event) => { void handleSubmit(event); }}
+        className="space-y-3">
+        <p className="text-sm text-fg-muted">{description}</p>
+        <label htmlFor={inputId} className="block text-sm font-medium text-fg">
+          Vault passphrase
+        </label>
+        <input id={inputId} type="password" autoComplete="off"
+          value={passphrase}
+          onChange={(event) => {
+            setPassphrase(event.target.value);
+            setError(null);
+          }}
+          className="w-full px-3 py-2 bg-bg-base border border-border rounded-md text-fg focus:outline-none focus:ring-2 focus:ring-primary-500"
+          aria-invalid={error !== null}
+          aria-describedby={error !== null ? `${inputId}-error` : undefined}
+          required
+        />
+        {error !== null && (
+          <p id={`${inputId}-error`} role="alert" className="text-sm text-danger-400">
+            {error}
+          </p>
+        )}
+      </form>
+    </CustomModal>
+  );
+}
+
 type IInfraPanelProps = Record<string, never>;
 
 interface IInfraWorkspaceCardProps {
   workspace: string;
   accessToken: string | null;
   infraCredentials: IInfraCredentials;
+  vaultUserId: string | null;
+  vaultMetadata: Record<string, unknown> | null;
   infraReady: boolean;
   awsReady: boolean;
   tfcReady: boolean;
@@ -150,6 +257,8 @@ function InfraWorkspaceCard({
   workspace,
   accessToken,
   infraCredentials,
+  vaultUserId,
+  vaultMetadata,
   infraReady,
   awsReady,
   tfcReady,
@@ -184,6 +293,7 @@ function InfraWorkspaceCard({
   const [editWorkspaceName, setEditWorkspaceName] =
     useState<string>(workspaceValue);
   const [currentRegion, setCurrentRegion] = useState<string | null>(null);
+  const [pendingDestructiveAction, setPendingDestructiveAction] = useState<'stop-ec2' | 'apply-config' | null>(null);
   const [isSavingConfig, setIsSavingConfig] = useState<boolean>(false);
   const [isLoadingConfig, setIsLoadingConfig] = useState<boolean>(false);
   const previousValueRef = useRef<boolean>(false);
@@ -459,7 +569,11 @@ function InfraWorkspaceCard({
       setError('Add a Terraform Cloud workspace first.');
       return;
     }
-    toggleMutation.mutate(!enableEc2);
+    if (enableEc2) {
+      setPendingDestructiveAction('stop-ec2');
+      return;
+    }
+    toggleMutation.mutate(true);
   };
 
   const handleStartEdit = async () => {
@@ -1121,7 +1235,7 @@ function InfraWorkspaceCard({
             <button
               type="button"
               onClick={() => {
-                void handleApplyConfig();
+                setPendingDestructiveAction('apply-config');
               }}
               disabled={isSavingConfig}
               className="btn-primary btn-full btn-sm"
@@ -1218,12 +1332,30 @@ function InfraWorkspaceCard({
           )}
         </div>
       )}
+      <InfraPassphraseModal
+        isOpen={pendingDestructiveAction !== null}
+        title={pendingDestructiveAction === 'stop-ec2' ? 'Stop EC2 instance' : 'Apply infrastructure changes'}
+        description={pendingDestructiveAction === 'stop-ec2'
+          ? `Stopping ${workspaceLabel} may terminate its provisioned EC2 instance. Enter your vault passphrase to confirm.`
+          : `Changes to ${workspaceLabel} may replace or destroy provisioned resources. Enter your vault passphrase to confirm.`}
+        confirmLabel={pendingDestructiveAction === 'stop-ec2' ? 'Stop instance' : 'Apply changes'}
+        userId={vaultUserId}
+        userMetadata={vaultMetadata}
+        onClose={() => { setPendingDestructiveAction(null); }}
+        onConfirmed={() => {
+          if (pendingDestructiveAction === 'stop-ec2') {
+            toggleMutation.mutate(false);
+          } else if (pendingDestructiveAction === 'apply-config') {
+            void handleApplyConfig();
+          }
+        }}
+      />
     </div>
   );
 }
 
 export default function InfraPanel(_props: IInfraPanelProps) {
-  const { user, accessToken } = useUser();
+  const { user, userMetadata, accessToken } = useUser();
   const { decryptedMetadata, isLoading: isMetadataLoading } =
     useDecryptedUserMetadata();
   const { openUserProfile } = useUserProfileStore();
@@ -1594,6 +1726,8 @@ export default function InfraPanel(_props: IInfraPanelProps) {
               workspace={DEV_WORKSPACE_NAME}
               accessToken={accessToken}
               infraCredentials={infraCredentials}
+              vaultUserId={user?.sub ?? null}
+              vaultMetadata={userMetadata}
               infraReady={infraReady}
               awsReady={awsReady}
               tfcReady={tfcReady}
@@ -1620,6 +1754,8 @@ export default function InfraPanel(_props: IInfraPanelProps) {
                 workspace={workspace}
                 accessToken={accessToken}
                 infraCredentials={infraCredentials}
+                vaultUserId={user?.sub ?? null}
+                vaultMetadata={userMetadata}
                 infraReady={infraReady}
                 awsReady={awsReady}
                 tfcReady={tfcReady}
@@ -1988,88 +2124,20 @@ export default function InfraPanel(_props: IInfraPanelProps) {
         </div>
       </div>
 
-      <CustomModal
+      <InfraPassphraseModal
         isOpen={workspaceToDelete !== null}
-        title="Delete Workspace"
+        title="Delete workspace"
+        description={`Deleting ${workspaceToDelete ?? 'this workspace'} permanently removes it from Terraform Cloud and may destroy its infrastructure. Enter your vault passphrase to confirm.`}
+        confirmLabel="Delete workspace"
+        userId={user?.sub ?? null}
+        userMetadata={userMetadata}
         onClose={() => {
           if (deletingWorkspace === null) {
             setWorkspaceToDelete(null);
           }
         }}
-        size="small"
-        footer={
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setWorkspaceToDelete(null);
-              }}
-              disabled={deletingWorkspace !== null}
-              className="btn-secondary flex-1"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirmDelete}
-              disabled={deletingWorkspace !== null}
-              className="btn-danger btn-icon flex-1"
-            >
-              {deletingWorkspace !== null ? (
-                <>
-                  <svg
-                    className="w-4 h-4 animate-spin"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <title>Deleting</title>
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Deleting...
-                </>
-              ) : (
-                'Delete'
-              )}
-            </button>
-          </div>
-        }
-      >
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-red-900/30 rounded-full flex-shrink-0">
-            <svg
-              className="w-5 h-5 text-red-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <title>Warning</title>
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <p className="text-sm">
-            Are you sure you want to delete{' '}
-            <span className="font-medium text-fg">{workspaceToDelete}</span>?
-            This will permanently remove the workspace from Terraform Cloud.
-          </p>
-        </div>
-      </CustomModal>
+        onConfirmed={handleConfirmDelete}
+      />
 
       {/* Terminal Overlay */}
       {terminalHost !== null && (

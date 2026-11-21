@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ICustomModalProps {
@@ -26,9 +26,12 @@ function CustomModal({
   footer,
 }: ICustomModalProps) {
   const modal = useRef<HTMLDivElement>(null);
-  const modalRoot = useStaticPortal
-    ? document.getElementById('static-modal-root')
-    : document.createElement('div');
+  const modalRoot = useMemo(
+    () => useStaticPortal
+      ? document.getElementById('static-modal-root')
+      : document.createElement('div'),
+    [useStaticPortal],
+  );
 
   // Store the element that had focus before modal opened
   const previousActiveElement = useRef<HTMLElement | null>(null);
