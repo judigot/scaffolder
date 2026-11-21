@@ -1,4 +1,5 @@
-import { beforeAll, describe, expect, it } from 'bun:test';
+// @vitest-environment node
+import { beforeAll, describe, expect, it } from 'vitest';
 import { encryptSecret } from '@/utils/zeroKnowledgeEncryption.ts';
 import { verifyInfraVaultPassphrase } from '@/utils/verifyInfraVaultPassphrase.ts';
 
