@@ -6,9 +6,11 @@ import {
   usersPostsOneToManySchema,
 } from '@/json-schemas/index.ts';
 
+const POSTGRES_OPTIONS = { dbType: 'postgresql', quote: '"' } as const;
+
 describe('generateSQLInserts', () => {
   it('should generate correct SQL INSERT statements for POS schema', () => {
-    const sqlInserts = generateSQLInserts(POSSchema);
+    const sqlInserts = generateSQLInserts(POSSchema, POSTGRES_OPTIONS);
     expect(sqlInserts).toContain(
       `INSERT INTO "product" (product_id, product_name) VALUES (1, 'Water'),(2, 'Yogurt');`,
     );
@@ -24,7 +26,7 @@ describe('generateSQLInserts', () => {
   });
 
   it('should generate correct SQL INSERT statements for usersPostOneToOneSchema', () => {
-    const sqlInserts = generateSQLInserts(usersPostOneToOneSchema);
+    const sqlInserts = generateSQLInserts(usersPostOneToOneSchema, POSTGRES_OPTIONS);
     expect(sqlInserts).toContain(
       `INSERT INTO "user" (user_id, first_name, last_name, email, username, password, created_at, updated_at) VALUES (1, 'John', 'Doe', 'john.doe@example.com', 'johndoe', '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m', '2023-06-18T10:17:19.123456Z', '2024-06-18T10:17:19.123456Z'),(2, 'Jane', 'Doe', 'jane.doe@example.com', 'janedoe', '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m', '2024-06-18T10:17:19.123456Z', '2024-06-18T10:17:19.123456Z');`,
     );
@@ -34,12 +36,23 @@ describe('generateSQLInserts', () => {
   });
 
   it('should generate correct SQL INSERT statements for usersPostsOneToManySchema', () => {
-    const sqlInserts = generateSQLInserts(usersPostsOneToManySchema);
+    const sqlInserts = generateSQLInserts(usersPostsOneToManySchema, POSTGRES_OPTIONS);
     expect(sqlInserts).toContain(
       `INSERT INTO "user" (user_id, first_name, last_name, email, username, password, created_at, updated_at) VALUES (1, 'John', 'Doe', 'john.doe@example.com', 'johndoe', '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m', '2023-06-18T10:17:19.123456Z', '2024-06-18T10:17:19.123456Z'),(2, 'Jane', 'Doe', 'jane.doe@example.com', 'janedoe', '$2b$10$M/WlJFeICXSTwvlM54X75u9Tg5Y3w/ak5T7O96cYY7mW0vJ2NFA7m', '2024-06-18T10:17:19.123456Z', '2024-06-18T10:17:19.123456Z');`,
     );
     expect(sqlInserts).toContain(
       `INSERT INTO "post" (post_id, user_id, title, content, created_at, updated_at) VALUES (1, 1, 'John''s Post', 'Lorem ipsum', '2023-06-18T10:17:19.123456Z', '2024-06-18T10:17:19.123456Z'),(2, 1, 'John''s 2nd Post', 'Lorem ipsum', '2023-06-18T10:17:19.123456Z', '2024-06-18T10:17:19.123456Z'),(3, 2, 'Jane''s Post', NULL, '2024-06-18T10:17:19.123456Z', '2024-06-18T10:17:19.123456Z');`,
     );
+  });
+
+  it('should use explicit MySQL settings instead of shared form state', () => {
+    const sqlInserts = generateSQLInserts(usersPostOneToOneSchema, {
+      dbType: 'mysql',
+      quote: '`',
+    });
+
+    expect(sqlInserts).toContain('INSERT INTO `user`');
+    expect(sqlInserts).toContain("'2023-06-18 10:17:19.123456'");
+    expect(sqlInserts).not.toContain('INSERT INTO "user"');
   });
 });
