@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
@@ -13,7 +13,18 @@ import SQLSchemaInputModal from '@/components/SQLSchemaInputModal.tsx';
 // import { FormParser } from '@/dynamic-form/ReactFormParser.tsx';
 // import { JSONFormStructure } from '@/dynamic-form/DynamicFormStructure.ts';import { parse, stringify } from 'yaml'
 
-import { Auth0Provider } from '@auth0/auth0-react';
+import { type AppState, Auth0Provider } from '@auth0/auth0-react';
+import AuthSessionManager from '@/components/auth/AuthSessionManager.tsx';
+import {
+  createAppQueryClient,
+  installAuthAwareFocusManager,
+  installConnectivityTracking,
+} from '@/lib/api/queryClient.ts';
+import {
+  getSavedReturnTo,
+  sanitizeReturnTo,
+} from '@/lib/auth/returnContext.ts';
+import { revalidateSession } from '@/lib/auth/tokenManager.ts';
 
 import formatCode from '@/utils/formatCode.ts';
 
@@ -61,7 +72,21 @@ class Profile extends Model
 
 const rootElement = document.getElementById('root');
 
-const queryClient = new QueryClient();
+const queryClient = createAppQueryClient();
+installAuthAwareFocusManager(revalidateSession);
+installConnectivityTracking();
+
+/**
+ * Restores the user's previous location after an Auth0 redirect. Drafts stay
+ * in sessionStorage until the owning component consumes them (or they expire).
+ */
+const handleRedirectCallback = (appState?: AppState): void => {
+  const target =
+    sanitizeReturnTo(appState?.returnTo) ??
+    getSavedReturnTo() ??
+    window.location.pathname;
+  window.history.replaceState({}, document.title, target);
+};
 
 if (rootElement) {
   ReactDOM.createRoot(rootElement).render(
@@ -80,15 +105,18 @@ if (rootElement) {
         }}
         cacheLocation="localstorage"
         useRefreshTokens={true}
+        onRedirectCallback={handleRedirectCallback}
       >
         {/* <FormParser structure={JSONFormStructure} /> */}
 
         <QueryClientProvider client={queryClient}>
           <AuthGuard>
-            <ModalProvider />
-            <SQLSchemaInputModal />
-            {/* <TransformationTester /> */}
-            <ChatApp />
+            <AuthSessionManager>
+              <ModalProvider />
+              <SQLSchemaInputModal />
+              {/* <TransformationTester /> */}
+              <ChatApp />
+            </AuthSessionManager>
           </AuthGuard>
         </QueryClientProvider>
       </Auth0Provider>

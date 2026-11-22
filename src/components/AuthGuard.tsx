@@ -1,5 +1,9 @@
 import { useAuth0 } from "@auth0/auth0-react";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+	getCurrentReturnTo,
+	recordLoginRedirect,
+} from "@/lib/auth/returnContext.ts";
 import type { IMockAuthConfig } from "@/test/mocks/auth/types.ts";
 
 interface IAuthGuardProps {
@@ -32,7 +36,26 @@ const isMockAuthEnabled = (): boolean => {
 export default function AuthGuard({ children }: IAuthGuardProps) {
 	const { isAuthenticated, isLoading, error, loginWithRedirect } = useAuth0();
 	const [showDebug, setShowDebug] = useState(false);
+	const [loopPrevented, setLoopPrevented] = useState(false);
+	const redirectStarted = useRef(false);
 	const mockAuth = isMockAuthEnabled();
+	const needsLogin = !isLoading && !error && !isAuthenticated && !mockAuth;
+
+	// Redirect to Auth0 from an effect (never during render) and at most a few
+	// times per window, so a broken session can never cause a redirect loop.
+	useEffect(() => {
+		if (!needsLogin || redirectStarted.current) {
+			return;
+		}
+		if (!recordLoginRedirect("auth-guard")) {
+			setLoopPrevented(true);
+			return;
+		}
+		redirectStarted.current = true;
+		void loginWithRedirect({
+			appState: { returnTo: getCurrentReturnTo() },
+		});
+	}, [needsLogin, loginWithRedirect]);
 
 	useEffect(() => {
 		const timer = setTimeout(() => {
@@ -122,9 +145,35 @@ export default function AuthGuard({ children }: IAuthGuardProps) {
 		);
 	}
 
-	if (!isAuthenticated && !mockAuth) {
-		void loginWithRedirect();
-		return null;
+	if (needsLogin) {
+		if (!loopPrevented) {
+			return null;
+		}
+		return (
+			<div className="flex flex-col justify-center items-center h-screen bg-black text-white p-8">
+				<div
+					role="alert"
+					className="bg-bg-subtle border border-border rounded-lg p-8 max-w-md w-full shadow-2xl text-center"
+				>
+					<h2 className="text-xl font-semibold mb-2">Sign in to Scaffolder</h2>
+					<p className="text-fg-muted mb-6 text-sm">
+						We couldn&apos;t sign you in automatically. Please sign in to
+						continue.
+					</p>
+					<button
+						type="button"
+						onClick={() => {
+							void loginWithRedirect({
+								appState: { returnTo: getCurrentReturnTo() },
+							});
+						}}
+						className="btn-primary w-full"
+					>
+						Sign in
+					</button>
+				</div>
+			</div>
+		);
 	}
 
 	return <>{children}</>;
