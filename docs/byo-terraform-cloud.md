@@ -151,4 +151,5 @@ Saves encrypted infra credentials to Auth0.
 - Terraform Cloud SaaS only (`https://app.terraform.io`). No Enterprise/custom hosts.
 - Free tier compatible (single workspace, API token auth).
 - Runs use `auto-apply: true` — no manual confirmation step.
+- Destructive workspace actions (stop EC2, apply destructive config, terminate workspace) require typing the exact workspace name to confirm. Termination also requires the same `confirmation` value in the DELETE API body.
 - TFC token is never returned in plaintext by the server after save.

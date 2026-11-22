@@ -39,6 +39,7 @@ import {
   validateTerraformConfig,
   waitForConfigurationReady,
 } from '@/app/services/terraformCloudService.ts';
+import { matchesWorkspaceNameConfirmation } from '@/utils/matchesWorkspaceNameConfirmation.ts';
 import { verifyAuth0TokenFromAuthHeader } from '@/utils/verifyAuth0Token.ts';
 
 interface ITerraformRunPayload {
@@ -1468,7 +1469,11 @@ router.delete('/workspace/:workspaceName', async (c) => {
     );
   }
 
-  const body = await c.req.json<{ tfcToken?: unknown; tfcOrg?: unknown }>();
+  const body = await c.req.json<{
+    tfcToken?: unknown;
+    tfcOrg?: unknown;
+    confirmation?: unknown;
+  }>();
 
   if (
     typeof body.tfcToken !== 'string' ||
@@ -1480,6 +1485,19 @@ router.delete('/workspace/:workspaceName', async (c) => {
       {
         error: 'Missing Terraform Cloud credentials',
         message: 'tfcToken and tfcOrg are required.',
+      },
+      400,
+    );
+  }
+
+  if (
+    typeof body.confirmation !== 'string' ||
+    !matchesWorkspaceNameConfirmation(body.confirmation, workspaceName)
+  ) {
+    return c.json(
+      {
+        error: 'Confirmation mismatch',
+        message: 'Type the workspace name to confirm termination.',
       },
       400,
     );

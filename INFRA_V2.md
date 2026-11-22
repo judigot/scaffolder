@@ -69,6 +69,7 @@ Toggle EC2 provisioning via Terraform Cloud from the app UI. Credentials are enc
 | POST   | `/terraform/status`     | Fetch workspace variables and outputs                 |
 | POST   | `/terraform/run`        | Validate credentials, upsert variables, trigger apply |
 | POST   | `/terraform/run/:runId` | Poll run status by ID                                 |
+| DELETE | `/terraform/workspace/:workspaceName` | Terminate a workspace; body must include `confirmation` equal to the workspace name |
 
 ## File Map
 
