@@ -3,7 +3,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { z } from 'zod';
 import { SmartEnvPaste } from '@/components/UI/SmartEnvPaste.tsx';
 import type { ISmartEnvMergeResult } from '@/utils/envParser.ts';
-import { getApiUrl } from '@/utils/getApiUrl.ts';
+import { authFetchJson } from '@/lib/api/authFetch.ts';
 
 const VariablesResponseSchema = z.object({
   success: z.boolean(),
@@ -28,7 +28,8 @@ interface ILocalVariable {
 
 interface IWorkspaceVariablesPanelProps {
   workspace: string;
-  accessToken: string | null;
+  /** Whether protected requests may run (signed in, session not expired). */
+  isSessionReady: boolean;
   tfcToken: string;
   tfcOrg: string;
 }
@@ -50,7 +51,7 @@ const SYSTEM_VARIABLES = new Set([
 
 export function WorkspaceVariablesPanel({
   workspace,
-  accessToken,
+  isSessionReady,
   tfcToken,
   tfcOrg,
 }: IWorkspaceVariablesPanelProps) {
@@ -78,31 +79,20 @@ export function WorkspaceVariablesPanel({
       workspace !== '' &&
       tfcToken !== '' &&
       tfcOrg !== '' &&
-      accessToken !== null &&
-      accessToken !== '',
+      isSessionReady,
     staleTime: 30_000,
-    queryFn: async () => {
-      if (accessToken === null || accessToken === '') {
-        throw new Error('Missing access token');
-      }
-      const response = await fetch(
-        `${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspace)}/variables`,
+    queryFn: () =>
+      authFetchJson(
+        `/terraform/workspace/${encodeURIComponent(workspace)}/variables`,
         {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ tfcToken, tfcOrg }),
+          // Read-only lookup sent as POST to keep credentials out of URLs.
+          idempotent: true,
+          json: { tfcToken, tfcOrg },
+          errorMessage: 'Failed to fetch workspace variables',
         },
-      );
-      if (!response.ok) {
-        throw new Error('Failed to fetch workspace variables');
-      }
-
-      const data: unknown = await response.json();
-      return VariablesResponseSchema.parse(data);
-    },
+        (data) => VariablesResponseSchema.parse(data),
+      ),
   });
 
   const userVariables = useMemo(() => {
@@ -127,19 +117,12 @@ export function WorkspaceVariablesPanel({
   }, [hasChanges, localVariables, userVariables]);
 
   const saveMutation = useMutation({
-    mutationFn: async (variables: ILocalVariable[]) => {
-      if (accessToken === null || accessToken === '') {
-        throw new Error('Missing access token');
-      }
-      const response = await fetch(
-        `${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspace)}/variables`,
+    mutationFn: (variables: ILocalVariable[]) =>
+      authFetchJson(
+        `/terraform/workspace/${encodeURIComponent(workspace)}/variables`,
         {
           method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+          json: {
             tfcToken,
             tfcOrg,
             variables: variables.map((v) => ({
@@ -148,23 +131,10 @@ export function WorkspaceVariablesPanel({
               category: v.category,
               sensitive: v.sensitive,
             })),
-          }),
+          },
+          errorMessage: 'Failed to save variables',
         },
-      );
-      if (!response.ok) {
-        const errorBody: unknown = await response.json().catch(() => null);
-        const message =
-          errorBody !== null &&
-          typeof errorBody === 'object' &&
-          'message' in errorBody &&
-          typeof errorBody.message === 'string'
-            ? errorBody.message
-            : 'Failed to save variables';
-        throw new Error(message);
-      }
-      const result: unknown = await response.json();
-      return result;
-    },
+      ),
     onSuccess: () => {
       setHasChanges(false);
       setError(null);

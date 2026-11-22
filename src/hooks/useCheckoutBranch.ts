@@ -1,4 +1,5 @@
 import { useAuth0 } from "@auth0/auth0-react";
+import { getAccessToken } from "@/lib/auth/tokenManager.ts";
 import { useState } from "react";
 
 interface ICheckoutOptions {
@@ -20,7 +21,7 @@ interface ICheckoutResult {
 export function useCheckoutBranch() {
 	const [isCheckingOut, setIsCheckingOut] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const { getAccessTokenSilently, isAuthenticated } = useAuth0();
+	const { isAuthenticated } = useAuth0();
 
 	const checkout = async (
 		options: ICheckoutOptions,
@@ -37,7 +38,7 @@ export function useCheckoutBranch() {
 		setError(null);
 
 		try {
-			const token = await getAccessTokenSilently();
+			const token = await getAccessToken();
 			const response = await fetch("/api/local-repo/checkout", {
 				method: "POST",
 				headers: {

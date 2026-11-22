@@ -1,4 +1,4 @@
-import { useAuth0 } from '@auth0/auth0-react';
+import { getAccessToken } from '@/lib/auth/tokenManager.ts';
 import Editor, { type OnMount } from '@monaco-editor/react';
 import {
   Close as CloseIcon,
@@ -195,8 +195,7 @@ function FileViewer({
 }) {
   const safeFilesUsingUserEnv = filesUsingUserEnv;
 
-  const { getAccessTokenSilently } = useAuth0();
-  const {
+    const {
     githubToken,
     isLoading: isUserLoading,
     serverConfigStatus,
@@ -1381,11 +1380,7 @@ function FileViewer({
   const handleOpenExportModal = () => {
     void (async () => {
       try {
-        const accessTokenResult = await getAccessTokenSilently({
-          authorizationParams: {
-            audience: String(import.meta.env.VITE_AUTH0_AUDIENCE),
-          },
-        });
+        const accessTokenResult = await getAccessToken();
         if (typeof accessTokenResult !== 'string' || accessTokenResult === '') {
           throw new Error('Failed to get access token');
         }

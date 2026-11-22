@@ -1,4 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
+import { getAccessToken } from '@/lib/auth/tokenManager.ts';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
@@ -18,7 +19,7 @@ import { useSchemaStore } from '@/useSchemaStore.ts';
 import useTransformationsStore from '@/useTransformationsStore.ts';
 
 function SchemaSelector() {
-  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
+  const { isAuthenticated } = useAuth0();
   const { promptModal, newValue } = useModalStore();
   const { publicRepoURL } = useFormStore();
   const queryClient = useQueryClient();
@@ -141,7 +142,7 @@ function SchemaSelector() {
         content: schemaInfo,
         publicRepoURL,
         getAccessToken: isAuthenticated
-          ? () => getAccessTokenSilently()
+          ? () => getAccessToken()
           : undefined,
       });
 
@@ -179,7 +180,6 @@ function SchemaSelector() {
     schemaInfo,
     publicRepoURL,
     isAuthenticated,
-    getAccessTokenSilently,
     setOriginalSchemaContent,
     invalidateUserFiles,
   ]);
@@ -223,7 +223,7 @@ function SchemaSelector() {
         content: emptySchema,
         publicRepoURL,
         getAccessToken: isAuthenticated
-          ? () => getAccessTokenSilently()
+          ? () => getAccessToken()
           : undefined,
       });
 
@@ -257,7 +257,6 @@ function SchemaSelector() {
     setSaveError,
     publicRepoURL,
     isAuthenticated,
-    getAccessTokenSilently,
     setSchemaInfo,
     setOriginalSchemaContent,
     invalidateUserFiles,
@@ -286,7 +285,7 @@ function SchemaSelector() {
           content: schemaInfo,
           publicRepoURL,
           getAccessToken: isAuthenticated
-            ? () => getAccessTokenSilently()
+            ? () => getAccessToken()
             : undefined,
         });
 
@@ -329,7 +328,7 @@ function SchemaSelector() {
         content: schemaInfo,
         publicRepoURL,
         getAccessToken: isAuthenticated
-          ? () => getAccessTokenSilently()
+          ? () => getAccessToken()
           : undefined,
       });
 
@@ -358,7 +357,6 @@ function SchemaSelector() {
     schemaInfo,
     publicRepoURL,
     isAuthenticated,
-    getAccessTokenSilently,
     invalidateUserFiles,
   ]);
 
@@ -393,7 +391,7 @@ function SchemaSelector() {
         schemaName: selectedSchemaName,
         publicRepoURL,
         getAccessToken: isAuthenticated
-          ? () => getAccessTokenSilently()
+          ? () => getAccessToken()
           : undefined,
       });
 
@@ -425,7 +423,6 @@ function SchemaSelector() {
     setDeleteError,
     publicRepoURL,
     isAuthenticated,
-    getAccessTokenSilently,
     selectSchema,
     setSchemaInfo,
     setOriginalSchemaContent,

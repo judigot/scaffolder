@@ -1,4 +1,5 @@
 import { useAuth0 } from "@auth0/auth0-react";
+import { getAccessToken } from "@/lib/auth/tokenManager.ts";
 import {
 	type UseQueryOptions,
 	type UseQueryResult,
@@ -22,7 +23,7 @@ export function useWorktreeFiles(
 	params: IUseWorktreeFilesParams,
 	options?: Omit<UseQueryOptions<IStructure>, "queryKey" | "queryFn">,
 ): UseQueryResult<IStructure> {
-	const { getAccessTokenSilently, isAuthenticated } = useAuth0();
+	const { isAuthenticated } = useAuth0();
 
 	return useQuery({
 		queryKey: ["worktreeFiles", params.worktreePath],
@@ -35,7 +36,7 @@ export function useWorktreeFiles(
 				return [];
 			}
 
-			const token = await getAccessTokenSilently();
+			const token = await getAccessToken();
 			const response = await fetch("/api/worktree/files", {
 				method: "POST",
 				headers: {

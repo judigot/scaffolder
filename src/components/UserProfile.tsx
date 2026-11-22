@@ -13,7 +13,7 @@ import {
   serializeEnvEntries,
   serializeInfraToEnv,
 } from '@/utils/envParser.ts';
-import { getApiUrl } from '@/utils/getApiUrl.ts';
+import { authorizedFetch } from '@/lib/api/authFetch.ts';
 import {
   normalizeWorkspaceList,
   parseWorkspaceValue,
@@ -313,7 +313,6 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     logout,
     githubToken,
     isLoading,
-    accessToken,
     refreshGitHubToken,
     userMetadata,
     encryptionAvailable,
@@ -706,7 +705,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
   );
 
   const saveGitHubToken = async (token: string) => {
-    if (user === null || accessToken === null || accessToken === '') {
+    if (user === null) {
       return;
     }
 
@@ -715,10 +714,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     setSuccessMessage(null);
 
     try {
-      const response = await fetch(`${getApiUrl()}/github-token`, {
+      const response = await authorizedFetch('/github-token', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ token }),
@@ -778,7 +776,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
   };
 
   const deleteGitHubToken = async () => {
-    if (user === null || accessToken === null || accessToken === '') {
+    if (user === null) {
       return;
     }
 
@@ -787,10 +785,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
     setSuccessMessage(null);
 
     try {
-      const response = await fetch(`${getApiUrl()}/github-token`, {
+      const response = await authorizedFetch('/github-token', {
         method: 'DELETE',
         headers: {
-          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
       });
@@ -1139,7 +1136,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
   };
 
   const saveInfraCredentials = async () => {
-    if (user?.sub === undefined || accessToken === null || accessToken === '') {
+    if (user?.sub === undefined) {
       return;
     }
 
@@ -1237,10 +1234,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
         ),
       };
 
-      const response = await fetch(`${getApiUrl()}/user-metadata/infra`, {
+      const response = await authorizedFetch('/user-metadata/infra', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ infra: encryptedEntries }),
@@ -1399,7 +1395,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
   };
 
   const handleDeleteAllSecrets = async () => {
-    if (user?.sub === undefined || accessToken === null || accessToken === '') {
+    if (user?.sub === undefined) {
       return;
     }
 
@@ -1412,10 +1408,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
         envVariables: [],
       };
 
-      const response = await fetch(`${getApiUrl()}/user-metadata/env`, {
+      const response = await authorizedFetch('/user-metadata/env', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
@@ -1567,7 +1562,7 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
   };
 
   const saveEnvironmentVariables = async () => {
-    if (user?.sub === undefined || accessToken === null || accessToken === '') {
+    if (user?.sub === undefined) {
       return;
     }
 
@@ -1640,10 +1635,9 @@ export default function UserProfile({ onTokenUpdate }: IUserProfileProps) {
         envVariables: encryptedEntries,
       };
 
-      const response = await fetch(`${getApiUrl()}/user-metadata/env`, {
+      const response = await authorizedFetch('/user-metadata/env', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),

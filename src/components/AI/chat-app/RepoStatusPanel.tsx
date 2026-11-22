@@ -1,4 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
+import { getAccessToken } from '@/lib/auth/tokenManager.ts';
 import { useCallback, useEffect, useState } from 'react';
 import { z } from 'zod';
 import { getErrorMessage } from '@/schemas/apiResponses.ts';
@@ -41,7 +42,7 @@ export default function RepoStatusPanel({
   onPull,
   onDeleteClone,
 }: IRepoStatusPanelProps) {
-  const { getAccessTokenSilently, isAuthenticated } = useAuth0();
+  const { isAuthenticated } = useAuth0();
   const [status, setStatus] = useState<IRepoStatusInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +58,7 @@ export default function RepoStatusPanel({
     setError(null);
 
     try {
-      const token = await getAccessTokenSilently();
+      const token = await getAccessToken();
       const response = await fetch('/api/local-repo/status-info', {
         method: 'POST',
         headers: {
@@ -87,7 +88,7 @@ export default function RepoStatusPanel({
     } finally {
       setIsLoading(false);
     }
-  }, [repoPath, isAuthenticated, getAccessTokenSilently]);
+  }, [repoPath, isAuthenticated]);
 
   useEffect(() => {
     void fetchStatus_();
@@ -100,7 +101,7 @@ export default function RepoStatusPanel({
 
     setFetchStatus('loading');
     try {
-      const token = await getAccessTokenSilently();
+      const token = await getAccessToken();
       const response = await fetch('/api/local-repo/fetch', {
         method: 'POST',
         headers: {
@@ -138,7 +139,7 @@ export default function RepoStatusPanel({
 
     setPullStatus('loading');
     try {
-      const token = await getAccessTokenSilently();
+      const token = await getAccessToken();
       const response = await fetch('/api/local-repo/pull', {
         method: 'POST',
         headers: {

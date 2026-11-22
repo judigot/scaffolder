@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { z } from 'zod';
 import { WorkspaceVariablesPanel } from '@/components/AI/WorkspaceVariablesPanel.tsx';
+import QueryErrorState from '@/components/auth/QueryErrorState.tsx';
 import CustomModal from '@/components/Modal/base/CustomModal.tsx';
 import { TerminalMode } from '@/components/Terminal/index.ts';
 
@@ -20,7 +21,17 @@ import {
 import { useDecryptedUserMetadata } from '@/hooks/useDecryptedUserMetadata.ts';
 import { useUser } from '@/hooks/useUser.ts';
 import {
-  getErrorMessage,
+  authFetch,
+  authFetchJson,
+  type IAuthFetchOptions,
+} from '@/lib/api/authFetch.ts';
+import { isSessionExpiredError, toUserMessage } from '@/lib/auth/authErrors.ts';
+import {
+  consumeDraft,
+  registerDraftProvider,
+} from '@/lib/auth/returnContext.ts';
+import { useSessionStore } from '@/lib/auth/sessionStore.ts';
+import {
   TerraformCreateRunResponseSchema,
   TerraformRunResponseSchema,
   TerraformStatusResponseSchema,
@@ -31,7 +42,6 @@ import { useInfraStore } from '@/useInfraStore.ts';
 import { isMasterDeveloper } from '@/useUIStore.ts';
 import { useUserProfileStore } from '@/useUserProfileStore.ts';
 import { hasEncryptedInfraValues } from '@/utils/decryptUserMetadata.ts';
-import { getApiUrl } from '@/utils/getApiUrl.ts';
 import { isRecord } from '@/utils/typeGuards.ts';
 import { verifyInfraVaultPassphrase } from '@/utils/verifyInfraVaultPassphrase.ts';
 
@@ -128,6 +138,30 @@ const parseInfraCredentials = (
 };
 
 export type { IInfraCredentials };
+
+const INFRA_DRAFT_KEY = 'infra:new-workspace';
+
+/** Non-sensitive new-workspace form state restored after re-login. */
+const InfraDraftSchema = z.object({
+  newWorkspace: z.string(),
+  workspaceMode: z.enum([WORKSPACE_MODES.API, WORKSPACE_MODES.VCS]),
+  ec2InstanceType: z.string(),
+  awsRegion: z.string(),
+  diskSize: z.number(),
+  customAmi: z.string(),
+  rdsInstanceClass: z.string(),
+  rdsEngine: z.enum(['postgresql', 'mysql']),
+  enableRds: z.boolean(),
+  githubOrg: z.string(),
+  useGithubUsername: z.boolean(),
+});
+
+const parseInfraDraft = (
+  value: unknown,
+): z.infer<typeof InfraDraftSchema> | null => {
+  const result = InfraDraftSchema.safeParse(value);
+  return result.success ? result.data : null;
+};
 
 interface IInfraPassphraseModalProps {
   isOpen: boolean;
@@ -237,7 +271,8 @@ type IInfraPanelProps = Record<string, never>;
 
 interface IInfraWorkspaceCardProps {
   workspace: string;
-  accessToken: string | null;
+  /** Signed in and session not expired; protected requests may run. */
+  isSessionReady: boolean;
   infraCredentials: IInfraCredentials;
   vaultUserId: string | null;
   vaultMetadata: Record<string, unknown> | null;
@@ -255,7 +290,7 @@ interface IInfraWorkspaceCardProps {
 
 function InfraWorkspaceCard({
   workspace,
-  accessToken,
+  isSessionReady,
   infraCredentials,
   vaultUserId,
   vaultMetadata,
@@ -326,15 +361,11 @@ function InfraWorkspaceCard({
       !isMetadataLoading &&
       workspaceValue !== '' &&
       infraReady &&
-      accessToken !== null &&
-      accessToken !== '' &&
+      isSessionReady &&
       !isLoading,
     staleTime: 30_000,
     refetchInterval: 60_000,
     queryFn: async () => {
-      if (accessToken === null || accessToken === '') {
-        throw new Error('Missing access token');
-      }
       const payload: Record<string, unknown> = {
         tfcToken: infraCredentials.tfcToken,
         tfcOrg: infraCredentials.tfcOrg,
@@ -349,20 +380,18 @@ function InfraWorkspaceCard({
         payload.sshPublicKey = infraCredentials.sshPublicKey;
       }
 
-      const response = await fetch(`${getApiUrl()}/terraform/status`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+      return authFetchJson(
+        '/terraform/status',
+        {
+          method: 'POST',
+          // Status is a read, except for the dev workspace which may be
+          // auto-created; that variant is never replayed automatically.
+          idempotent: !isDevWorkspace,
+          json: payload,
+          errorMessage: 'Failed to fetch Terraform status',
         },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch Terraform status');
-      }
-
-      const data: unknown = await response.json();
-      return TerraformStatusResponseSchema.parse(data);
+        (data) => TerraformStatusResponseSchema.parse(data),
+      );
     },
   });
 
@@ -392,8 +421,8 @@ function InfraWorkspaceCard({
   ]);
 
   useEffect(() => {
-    if (statusQuery.error instanceof Error) {
-      setError(statusQuery.error.message);
+    if (statusQuery.error !== null && !isSessionExpiredError(statusQuery.error)) {
+      setError(toUserMessage(statusQuery.error));
     }
   }, [statusQuery.error]);
 
@@ -430,7 +459,7 @@ function InfraWorkspaceCard({
 
   const refetchStatus = statusQuery.refetch;
   useEffect(() => {
-    if (runId === null || accessToken === null || accessToken === '') {
+    if (runId === null || !isSessionReady) {
       return;
     }
     if (!infraReady || workspaceValue === '') {
@@ -444,24 +473,21 @@ function InfraWorkspaceCard({
         return;
       }
       try {
-        const response = await fetch(`${getApiUrl()}/terraform/run/${runId}`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
+        const result = await authFetchJson(
+          `/terraform/run/${runId}`,
+          {
+            method: 'POST',
+            // Read-only run status lookup; safe to replay after refresh.
+            idempotent: true,
+            json: {
+              tfcToken: infraCredentials.tfcToken,
+              tfcOrg: infraCredentials.tfcOrg,
+              tfcWorkspace: workspaceValue,
+            },
+            errorMessage: 'Failed to fetch Terraform run status',
           },
-          body: JSON.stringify({
-            tfcToken: infraCredentials.tfcToken,
-            tfcOrg: infraCredentials.tfcOrg,
-            tfcWorkspace: workspaceValue,
-          }),
-        });
-        if (!response.ok) {
-          throw new Error('Failed to fetch Terraform run status');
-        }
-
-        const data: unknown = await response.json();
-        const result = TerraformRunResponseSchema.parse(data);
+          (data) => TerraformRunResponseSchema.parse(data),
+        );
         setRunStatus(result.run.status);
         if (!TERMINAL_STATUSES.has(result.run.status)) {
           timeoutId = window.setTimeout(() => {
@@ -479,8 +505,8 @@ function InfraWorkspaceCard({
         setIsLoading(false);
         await refetchStatus();
       } catch (pollError: unknown) {
-        if (pollError instanceof Error) {
-          setError(pollError.message);
+        if (!isSessionExpiredError(pollError)) {
+          setError(toUserMessage(pollError));
         }
         setIsLoading(false);
       }
@@ -496,7 +522,7 @@ function InfraWorkspaceCard({
     };
   }, [
     runId,
-    accessToken,
+    isSessionReady,
     refetchStatus,
     infraReady,
     infraCredentials.tfcToken,
@@ -505,14 +531,16 @@ function InfraWorkspaceCard({
   ]);
 
   const toggleMutation = useMutation({
-    mutationFn: async (nextValue: boolean) => {
-      const response = await fetch(`${getApiUrl()}/terraform/run`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken ?? ''}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+    mutationFn: (nextValue: boolean) =>
+      // Non-idempotent: authFetch never replays this after a token refresh,
+      // and refuses to send it at all while the session is expired.
+      authFetchJson(
+        '/terraform/run',
+        {
+          method: 'POST',
+          idempotent: false,
+          errorMessage: 'Failed to trigger Terraform run',
+          json: {
           enableEc2: nextValue,
           awsAccessKeyId: infraCredentials.awsAccessKeyId,
           awsSecretAccessKey: infraCredentials.awsSecretAccessKey,
@@ -522,20 +550,10 @@ function InfraWorkspaceCard({
           tfcOrg: infraCredentials.tfcOrg,
           tfcWorkspace: workspaceValue,
           customAmi: editCustomAmi,
-        }),
-      });
-      if (!response.ok) {
-        const errorBody: unknown = await response.json().catch(() => null);
-        const serverMessage = getErrorMessage(
-          errorBody,
-          'Failed to trigger Terraform run',
-        );
-        throw new Error(serverMessage);
-      }
-
-      const data: unknown = await response.json();
-      return TerraformRunResponseSchema.parse(data);
-    },
+          },
+        },
+        (data) => TerraformRunResponseSchema.parse(data),
+      ),
     onMutate: (nextValue: boolean) => {
       previousValueRef.current = enableEc2;
       setEnableEc2(nextValue);
@@ -549,16 +567,12 @@ function InfraWorkspaceCard({
     onError: (err: unknown) => {
       setEnableEc2(previousValueRef.current);
       setIsLoading(false);
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Failed to trigger Terraform run');
-      }
+      setError(toUserMessage(err, 'Failed to trigger Terraform run'));
     },
   });
 
   const handleToggle = () => {
-    if (accessToken === null || accessToken === '') {
+    if (!isSessionReady) {
       return;
     }
     if (!infraReady) {
@@ -577,7 +591,7 @@ function InfraWorkspaceCard({
   };
 
   const handleStartEdit = async () => {
-    if (accessToken === null || accessToken === '') {
+    if (!isSessionReady) {
       return;
     }
 
@@ -585,40 +599,31 @@ function InfraWorkspaceCard({
     setError(null);
 
     try {
+      const readOptions: IAuthFetchOptions = {
+        method: 'POST',
+        // Read-only lookups (POST keeps the TFC token out of URLs).
+        idempotent: true,
+        json: {
+          tfcToken: infraCredentials.tfcToken,
+          tfcOrg: infraCredentials.tfcOrg,
+        },
+      };
+      const workspacePath = `/terraform/workspace/${encodeURIComponent(workspaceValue)}`;
       const [variablesResponse, stateResponse] = await Promise.all([
-        fetch(
-          `${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/variables`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              tfcToken: infraCredentials.tfcToken,
-              tfcOrg: infraCredentials.tfcOrg,
-            }),
-          },
-        ),
-        fetch(
-          `${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/state`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              tfcToken: infraCredentials.tfcToken,
-              tfcOrg: infraCredentials.tfcOrg,
-            }),
+        authFetch(`${workspacePath}/variables`, {
+          ...readOptions,
+          errorMessage: 'Failed to fetch current configuration',
+        }),
+        // Missing state is fine (never applied); treat failures as "no state".
+        authFetch(`${workspacePath}/state`, readOptions).catch(
+          (stateError: unknown) => {
+            if (isSessionExpiredError(stateError)) {
+              throw stateError;
+            }
+            return null;
           },
         ),
       ]);
-
-      if (!variablesResponse.ok) {
-        throw new Error('Failed to fetch current configuration');
-      }
 
       const variablesJson: unknown = await variablesResponse.json();
       const variablesResult =
@@ -649,7 +654,7 @@ function InfraWorkspaceCard({
         state: StateDataSchema.nullable().optional(),
       });
       let stateData: IStateData | null = null;
-      if (stateResponse.ok) {
+      if (stateResponse !== null) {
         const stateJson: unknown = await stateResponse.json();
         const stateResult = StateResponseSchema.safeParse(stateJson);
         if (stateResult.success) {
@@ -686,16 +691,14 @@ function InfraWorkspaceCard({
       setEditWorkspaceName(workspaceValue);
       setIsEditing(true);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to load configuration',
-      );
+      setError(toUserMessage(err, 'Failed to load configuration'));
     } finally {
       setIsLoadingConfig(false);
     }
   };
 
   const handleApplyConfig = async () => {
-    if (accessToken === null || accessToken === '') {
+    if (!isSessionReady) {
       return;
     }
     if (workspaceValue === '') {
@@ -730,28 +733,16 @@ function InfraWorkspaceCard({
         payload.renameTo = renameTo;
       }
 
-      const response = await fetch(
-        `${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceValue)}/config`,
+      // Non-idempotent (may trigger a Terraform run): never auto-replayed.
+      const responseJson = await authFetchJson(
+        `/terraform/workspace/${encodeURIComponent(workspaceValue)}/config`,
         {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
+          idempotent: false,
+          json: payload,
+          errorMessage: 'Failed to update configuration',
         },
       );
-
-      if (!response.ok) {
-        const errorJson: unknown = await response.json();
-        const errorMessage = getErrorMessage(
-          errorJson,
-          'Failed to update configuration',
-        );
-        throw new Error(errorMessage);
-      }
-
-      const responseJson: unknown = await response.json();
       const createResult =
         TerraformCreateRunResponseSchema.safeParse(responseJson);
       if (
@@ -773,7 +764,7 @@ function InfraWorkspaceCard({
 
       setIsEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to apply changes');
+      setError(toUserMessage(err, 'Failed to apply changes'));
     } finally {
       setIsSavingConfig(false);
     }
@@ -995,7 +986,7 @@ function InfraWorkspaceCard({
         <>
           <WorkspaceVariablesPanel
             workspace={workspaceValue}
-            accessToken={accessToken}
+            isSessionReady={isSessionReady}
             tfcToken={infraCredentials.tfcToken}
             tfcOrg={infraCredentials.tfcOrg}
           />
@@ -1355,9 +1346,16 @@ function InfraWorkspaceCard({
 }
 
 export default function InfraPanel(_props: IInfraPanelProps) {
-  const { user, userMetadata, accessToken } = useUser();
-  const { decryptedMetadata, isLoading: isMetadataLoading } =
-    useDecryptedUserMetadata();
+  const { user, userMetadata, isAuthenticated, accessToken } = useUser();
+  const {
+    decryptedMetadata,
+    isLoading: isMetadataLoading,
+    error: metadataError,
+    retry: retryMetadata,
+    isRetrying: isMetadataRetrying,
+  } = useDecryptedUserMetadata();
+  const sessionStatus = useSessionStore((state) => state.status);
+  const isSessionReady = isAuthenticated && sessionStatus !== 'expired';
   const { openUserProfile } = useUserProfileStore();
 
   const isDevMode = isMasterDeveloper(
@@ -1402,7 +1400,12 @@ export default function InfraPanel(_props: IInfraPanelProps) {
     return hasEncryptedInfraValues(decryptedMetadata);
   }, [decryptedMetadata]);
 
-  const isMetadataPending = isMetadataLoading || decryptedMetadata === null;
+  // Metadata failed and there is nothing cached to show: render an error
+  // state with Retry instead of an endless skeleton.
+  const metadataFailed =
+    !isMetadataLoading && decryptedMetadata === null && metadataError !== null;
+  const isMetadataPending =
+    !metadataFailed && (isMetadataLoading || decryptedMetadata === null);
 
   const tfcCredentialsReady =
     !infraHasEncryptedValues &&
@@ -1418,31 +1421,25 @@ export default function InfraPanel(_props: IInfraPanelProps) {
     enabled:
       !isMetadataPending &&
       tfcCredentialsReady &&
-      accessToken !== null &&
-      accessToken !== '',
+      isSessionReady,
     staleTime: 60_000,
-    queryFn: async () => {
-      if (accessToken === null || accessToken === '') {
-        throw new Error('Missing access token');
-      }
-      const response = await fetch(`${getApiUrl()}/terraform/workspaces`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+    // Keep showing the last known workspaces during background refreshes.
+    placeholderData: (previous) => previous,
+    queryFn: () =>
+      authFetchJson(
+        '/terraform/workspaces',
+        {
+          method: 'POST',
+          // Read-only listing (POST keeps the TFC token out of URLs).
+          idempotent: true,
+          json: {
+            tfcToken: infraCredentials.tfcToken,
+            tfcOrg: infraCredentials.tfcOrg,
+          },
+          errorMessage: 'Failed to fetch workspaces',
         },
-        body: JSON.stringify({
-          tfcToken: infraCredentials.tfcToken,
-          tfcOrg: infraCredentials.tfcOrg,
-        }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch workspaces');
-      }
-
-      const data: unknown = await response.json();
-      return WorkspacesResponseSchema.parse(data);
-    },
+        (data) => WorkspacesResponseSchema.parse(data),
+      ),
   });
 
   const workspaceList = useMemo((): string[] => {
@@ -1480,13 +1477,67 @@ export default function InfraPanel(_props: IInfraPanelProps) {
   const visibleWorkspaces = isDevMode
     ? workspaceList.filter((ws) => ws !== DEV_WORKSPACE_NAME)
     : workspaceList;
+  const workspacesFailed =
+    workspacesQuery.isError && workspacesQuery.data === undefined;
   const showInitialSkeleton =
-    isMetadataPending || (tfcCredentialsReady && workspacesQuery.isLoading);
+    !metadataFailed &&
+    (isMetadataPending ||
+      (tfcCredentialsReady && isSessionReady && workspacesQuery.isPending &&
+        workspacesQuery.fetchStatus !== 'idle'));
   const canAddWorkspace =
-    !isWorkspaceSaving &&
-    tfcCredentialsReady &&
-    accessToken !== null &&
-    accessToken !== '';
+    !isWorkspaceSaving && tfcCredentialsReady && isSessionReady;
+
+  // Preserve the (non-sensitive) new-workspace draft across a re-login.
+  const draftRef = useRef({
+    newWorkspace,
+    workspaceMode,
+    ec2InstanceType,
+    awsRegion,
+    diskSize,
+    customAmi,
+    rdsInstanceClass,
+    rdsEngine,
+    enableRds,
+    githubOrg,
+    useGithubUsername,
+  });
+  draftRef.current = {
+    newWorkspace,
+    workspaceMode,
+    ec2InstanceType,
+    awsRegion,
+    diskSize,
+    customAmi,
+    rdsInstanceClass,
+    rdsEngine,
+    enableRds,
+    githubOrg,
+    useGithubUsername,
+  };
+  useEffect(
+    () =>
+      registerDraftProvider(INFRA_DRAFT_KEY, () =>
+        draftRef.current.newWorkspace.trim() === '' ? null : draftRef.current,
+      ),
+    [],
+  );
+  useEffect(() => {
+    const draft = parseInfraDraft(consumeDraft(INFRA_DRAFT_KEY));
+    if (draft === null) {
+      return;
+    }
+    setNewWorkspace(draft.newWorkspace);
+    setWorkspaceMode(draft.workspaceMode);
+    setEc2InstanceType(draft.ec2InstanceType);
+    setAwsRegion(draft.awsRegion);
+    setDiskSize(draft.diskSize);
+    setCustomAmi(draft.customAmi);
+    setRdsInstanceClass(draft.rdsInstanceClass);
+    setRdsEngine(draft.rdsEngine);
+    setEnableRds(draft.enableRds);
+    setGithubOrg(draft.githubOrg);
+    setUseGithubUsername(draft.useGithubUsername);
+  }, []);
 
   const handleAddWorkspace = async () => {
     setWorkspaceError(null);
@@ -1532,13 +1583,12 @@ export default function InfraPanel(_props: IInfraPanelProps) {
     setIsWorkspaceSaving(true);
 
     try {
-      const createResponse = await fetch(`${getApiUrl()}/terraform/workspace`, {
+      // Non-idempotent: never replayed automatically after a token refresh.
+      await authFetch('/terraform/workspace', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        idempotent: false,
+        errorMessage: 'Failed to create workspace in Terraform Cloud.',
+        json: {
           tfcToken: infraCredentials.tfcToken,
           tfcOrg: infraCredentials.tfcOrg,
           workspaceName: trimmed,
@@ -1569,19 +1619,8 @@ export default function InfraPanel(_props: IInfraPanelProps) {
                 ? githubUsername
                 : githubOrg.trim()
               : undefined,
-        }),
+        },
       });
-
-      if (!createResponse.ok) {
-        const errorBody: unknown = await createResponse
-          .json()
-          .catch(() => null);
-        const message = getErrorMessage(
-          errorBody,
-          'Failed to create workspace in Terraform Cloud.',
-        );
-        throw new Error(message);
-      }
 
       await queryClient.invalidateQueries({
         queryKey: [
@@ -1602,18 +1641,14 @@ export default function InfraPanel(_props: IInfraPanelProps) {
       setGithubOrg('');
       setUseGithubUsername(true);
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        setWorkspaceError(error.message);
-      } else {
-        setWorkspaceError('Failed to create workspace.');
-      }
+      setWorkspaceError(toUserMessage(error, 'Failed to create workspace.'));
     } finally {
       setIsWorkspaceSaving(false);
     }
   };
 
   const handleDeleteWorkspace = async (workspaceName: string) => {
-    if (accessToken === null || accessToken === '' || !tfcCredentialsReady) {
+    if (!isSessionReady || !tfcCredentialsReady) {
       setWorkspaceError('Unable to delete workspace. Check your credentials.');
       return;
     }
@@ -1622,31 +1657,19 @@ export default function InfraPanel(_props: IInfraPanelProps) {
     setWorkspaceError(null);
 
     try {
-      const deleteResponse = await fetch(
-        `${getApiUrl()}/terraform/workspace/${encodeURIComponent(workspaceName)}`,
+      // Destructive: never replayed automatically after a token refresh.
+      await authFetch(
+        `/terraform/workspace/${encodeURIComponent(workspaceName)}`,
         {
           method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+          idempotent: false,
+          errorMessage: 'Failed to delete workspace from Terraform Cloud.',
+          json: {
             tfcToken: infraCredentials.tfcToken,
             tfcOrg: infraCredentials.tfcOrg,
-          }),
+          },
         },
       );
-
-      if (!deleteResponse.ok) {
-        const errorBody: unknown = await deleteResponse
-          .json()
-          .catch(() => null);
-        const message = getErrorMessage(
-          errorBody,
-          'Failed to delete workspace from Terraform Cloud.',
-        );
-        throw new Error(message);
-      }
 
       await queryClient.invalidateQueries({
         queryKey: [
@@ -1656,11 +1679,7 @@ export default function InfraPanel(_props: IInfraPanelProps) {
         ],
       });
     } catch (error: unknown) {
-      if (error instanceof Error) {
-        setWorkspaceError(error.message);
-      } else {
-        setWorkspaceError('Failed to delete workspace.');
-      }
+      setWorkspaceError(toUserMessage(error, 'Failed to delete workspace.'));
     } finally {
       setDeletingWorkspace(null);
       setWorkspaceToDelete(null);
@@ -1697,6 +1716,26 @@ export default function InfraPanel(_props: IInfraPanelProps) {
         </div>
 
         <div className="space-y-4">
+          {metadataFailed && (
+            <QueryErrorState
+              title="Could not load your infrastructure settings"
+              error={metadataError}
+              onRetry={() => {
+                void retryMetadata();
+              }}
+              isRetrying={isMetadataRetrying}
+            />
+          )}
+          {!metadataFailed && workspacesFailed && (
+            <QueryErrorState
+              title="Could not load Terraform workspaces"
+              error={workspacesQuery.error}
+              onRetry={() => {
+                void workspacesQuery.refetch();
+              }}
+              isRetrying={workspacesQuery.isFetching}
+            />
+          )}
           {showInitialSkeleton && (
             <div className="p-4 bg-bg-muted border border-border rounded-lg space-y-4 animate-pulse">
               <div className="flex items-start justify-between gap-4">
@@ -1724,7 +1763,7 @@ export default function InfraPanel(_props: IInfraPanelProps) {
             <InfraWorkspaceCard
               key={DEV_WORKSPACE_NAME}
               workspace={DEV_WORKSPACE_NAME}
-              accessToken={accessToken}
+              isSessionReady={isSessionReady}
               infraCredentials={infraCredentials}
               vaultUserId={user?.sub ?? null}
               vaultMetadata={userMetadata}
@@ -1752,7 +1791,7 @@ export default function InfraPanel(_props: IInfraPanelProps) {
               <InfraWorkspaceCard
                 key={workspace.trim() !== '' ? workspace : 'workspace-new'}
                 workspace={workspace}
-                accessToken={accessToken}
+                isSessionReady={isSessionReady}
                 infraCredentials={infraCredentials}
                 vaultUserId={user?.sub ?? null}
                 vaultMetadata={userMetadata}

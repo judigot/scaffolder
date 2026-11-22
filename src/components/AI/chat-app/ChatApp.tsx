@@ -1,4 +1,5 @@
 import { useAuth0 } from '@auth0/auth0-react';
+import { getAccessToken } from '@/lib/auth/tokenManager.ts';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { z } from 'zod';
@@ -169,7 +170,7 @@ function storedRepoToFullRepo(stored: IStoredRepository): IRepository {
 
 export default function ChatApp() {
   // ===== Auth =====
-  const { isAuthenticated, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated } = useAuth0();
 
   // ===== React Query =====
   const queryClient = useQueryClient();
@@ -250,7 +251,7 @@ export default function ChatApp() {
       console.log(`[ChatApp] Loading chats from filesystem for ${repoId}`);
 
       try {
-        const token = await getAccessTokenSilently();
+        const token = await getAccessToken();
         const response = await fetch('/api/worktree/scan-chats', {
           method: 'POST',
           headers: {
@@ -327,7 +328,7 @@ export default function ChatApp() {
         console.error('Failed to load chats from worktrees:', error);
       }
     },
-    [getAccessTokenSilently, setRepositories],
+    [setRepositories],
   );
 
   // Load chats from worktrees when repository changes (only once per repo)
@@ -593,7 +594,7 @@ export default function ChatApp() {
       throw new Error('You must be logged in to add repositories.');
     }
 
-    const token = await getAccessTokenSilently();
+    const token = await getAccessToken();
     const response = await fetch('/api/local-repo/clone', {
       method: 'POST',
       headers: {
@@ -677,7 +678,7 @@ export default function ChatApp() {
       throw new Error('You must be logged in to delete local clones.');
     }
 
-    const token = await getAccessTokenSilently();
+    const token = await getAccessToken();
     const response = await fetch('/api/local-repo/delete', {
       method: 'POST',
       headers: {
@@ -1110,7 +1111,7 @@ export default function ChatApp() {
       try {
         updateChatWorktree(chatId, { worktreeStatus: 'creating' });
 
-        const token = await getAccessTokenSilently();
+        const token = await getAccessToken();
         const createResponse = await fetch('/api/worktree/create', {
           method: 'POST',
           headers: {
@@ -1175,7 +1176,7 @@ export default function ChatApp() {
     let commitCountBefore = 0;
     if (worktreePath !== undefined && worktreePath !== '' && isAuthenticated) {
       try {
-        const token = await getAccessTokenSilently();
+        const token = await getAccessToken();
         const validationResponse = await fetch('/api/worktree/validate', {
           method: 'POST',
           headers: {
@@ -1300,7 +1301,7 @@ export default function ChatApp() {
         isAuthenticated
       ) {
         try {
-          const token = await getAccessTokenSilently();
+          const token = await getAccessToken();
           const postValidationResponse = await fetch(
             '/api/worktree/validate-result',
             {

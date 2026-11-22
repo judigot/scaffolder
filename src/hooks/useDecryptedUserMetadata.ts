@@ -14,8 +14,20 @@ import { getPassphraseFromSession } from "@/utils/passphraseSession.ts";
 export function useDecryptedUserMetadata(): {
 	decryptedMetadata: Record<string, unknown> | null;
 	isLoading: boolean;
+	/** Metadata request failure (auth/network/server); null when healthy. */
+	error: Error | null;
+	retry: () => Promise<void>;
+	isRetrying: boolean;
 } {
-	const { user, userMetadata, isLoading: isUserLoading } = useUser();
+	const {
+		user,
+		userMetadata,
+		isLoading: isUserLoading,
+		isMetadataLoaded,
+		metadataError,
+		refetchMetadata,
+		isMetadataFetching,
+	} = useUser();
 	const [decryptedMetadata, setDecryptedMetadata] = useState<Record<
 		string,
 		unknown
@@ -23,8 +35,14 @@ export function useDecryptedUserMetadata(): {
 	const [isDecrypting, setIsDecrypting] = useState<boolean>(false);
 
 	useEffect(() => {
-		if (isUserLoading || userMetadata === null) {
+		if (isUserLoading) {
 			setDecryptedMetadata(null);
+			return;
+		}
+		if (userMetadata === null) {
+			// A successful response with no metadata (new account) is an empty
+			// state, not a loading state: never leave consumers on a skeleton.
+			setDecryptedMetadata(isMetadataLoaded ? {} : null);
 			return;
 		}
 
@@ -64,10 +82,13 @@ export function useDecryptedUserMetadata(): {
 			.finally(() => {
 				setIsDecrypting(false);
 			});
-	}, [user?.sub, userMetadata, isUserLoading]);
+	}, [user?.sub, userMetadata, isUserLoading, isMetadataLoaded]);
 
 	return {
 		decryptedMetadata,
 		isLoading: isUserLoading || isDecrypting,
+		error: metadataError,
+		retry: refetchMetadata,
+		isRetrying: isMetadataFetching,
 	};
 }

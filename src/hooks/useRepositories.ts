@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useUser } from "@/hooks/useUser.ts";
-import { getApiUrl } from "@/utils/getApiUrl.ts";
+import { authFetch } from "@/lib/api/authFetch.ts";
+import { toUserMessage } from "@/lib/auth/authErrors.ts";
 
 export interface IStoredRepository {
 	repoUrl: string;
@@ -46,7 +47,7 @@ const isStoredRepository = (repo: unknown): repo is IStoredRepository => {
  * Hook for managing user repositories stored in Auth0 user_metadata
  */
 export function useRepositories(): IUseRepositoriesResult {
-	const { userMetadata, accessToken } = useUser();
+	const { userMetadata } = useUser();
 	const [repositories, setRepositories] = useState<IStoredRepository[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -69,50 +70,21 @@ export function useRepositories(): IUseRepositoriesResult {
 
 	const saveRepositories = useCallback(
 		async (repos: IStoredRepository[]): Promise<boolean> => {
-			if (accessToken === null || accessToken === "") {
-				setError("Not authenticated");
-				return false;
-			}
-
 			try {
-				const response = await fetch(
-					`${getApiUrl()}/user-metadata/repositories`,
-					{
-						method: "POST",
-						headers: {
-							Authorization: `Bearer ${accessToken}`,
-							"Content-Type": "application/json",
-						},
-						body: JSON.stringify({ repositories: repos }),
-					},
-				);
-
-				if (!response.ok) {
-					const errorData: unknown = await response.json().catch(() => ({}));
-					let errorMessage = "Failed to save repositories";
-					if (
-						typeof errorData === "object" &&
-						errorData !== null &&
-						hasProperty(errorData, "message") &&
-						typeof errorData.message === "string"
-					) {
-						errorMessage = errorData.message;
-					}
-					setError(errorMessage);
-					return false;
-				}
-
+				await authFetch("/user-metadata/repositories", {
+					method: "POST",
+					json: { repositories: repos },
+					errorMessage: "Failed to save repositories",
+				});
 				setRepositories(repos);
 				setError(null);
 				return true;
 			} catch (err) {
-				const message =
-					err instanceof Error ? err.message : "Failed to save repositories";
-				setError(message);
+				setError(toUserMessage(err, "Failed to save repositories"));
 				return false;
 			}
 		},
-		[accessToken],
+		[],
 	);
 
 	const addRepository = useCallback(
