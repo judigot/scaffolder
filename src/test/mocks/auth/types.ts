@@ -86,6 +86,11 @@ export interface IMockAuthConfig {
 	accessToken?: string | null;
 	userMetadata?: IMockUserMetadata | null;
 	error?: Error | null;
+	/**
+	 * When set, silent token requests fail with this Auth0 error code
+	 * (e.g. "login_required"). Used to simulate expired sessions in tests.
+	 */
+	tokenError?: string | null;
 }
 
 /**
